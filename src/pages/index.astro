@@ -1,5 +1,5 @@
 ---
-const examples = ["144 jouls", "5 GB", "2 km"];
+const examples = ["144 jouls", "5 GB", "2 km", "1M AI tokens"];
 const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
 ---
 
@@ -91,6 +91,7 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
         </form>
         <div id="result" class="result" aria-live="polite" aria-atomic="true">
           <p class="result-label">THE IMPORTANT BIT</p>
+          <p id="result-estimate" class="result-estimate" hidden></p>
           <p id="result-headline" class="result-headline">FEED ME A NUMBER</p>
           <p id="result-interpretation" class="result-interpretation">
             I will turn it into something delightfully unhelpful.
@@ -135,10 +136,11 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
     <script>
       import type { ComparisonResult } from "../lib/comparison-flow";
       const details = document.querySelector<HTMLDetailsElement>("#result-details")!, basis = document.querySelector<HTMLParagraphElement>("#result-basis")!, sources = document.querySelector<HTMLUListElement>("#result-sources")!;
+      const estimate = document.querySelector<HTMLParagraphElement>("#result-estimate")!;
       let recentFamilies: string[] = [];
       const form = document.querySelector<HTMLFormElement>("#converter")!, input = document.querySelector<HTMLInputElement>("#prompt")!, panel = document.querySelector<HTMLDivElement>("#result")!, headline = document.querySelector<HTMLParagraphElement>("#result-headline")!, interpretation = document.querySelector<HTMLParagraphElement>("#result-interpretation")!, assumption = document.querySelector<HTMLParagraphElement>("#result-assumption")!, submit = form.querySelector<HTMLButtonElement>('button[type="submit"]')!, widget = document.querySelector<HTMLDivElement>("#turnstile-widget"), status = document.querySelector<HTMLParagraphElement>("#verification-status")!, retry = document.querySelector<HTMLButtonElement>("#turnstile-retry")!;
       let token = "", widgetId: string | undefined, timer: number | undefined, pending = false;
-      const reveal = () => { panel.classList.remove("is-fresh"); window.requestAnimationFrame(() => panel.classList.add("is-fresh")); }, show = (main: string, detail = "", note = "") => { headline.textContent = main; interpretation.textContent = detail; assumption.textContent = note; details.hidden = true; details.open = false; basis.textContent = ""; sources.replaceChildren(); reveal(); }, setStatus = (message: string, canRetry = false) => { status.textContent = message; retry.hidden = !canRetry; }, waitForToken = () => { window.clearTimeout(timer); timer = window.setTimeout(() => { if (!token)
+      const reveal = () => { panel.classList.remove("is-fresh"); window.requestAnimationFrame(() => panel.classList.add("is-fresh")); }, show = (main: string, detail = "", note = "") => { headline.textContent = main; interpretation.textContent = detail; assumption.textContent = note; estimate.hidden = true; estimate.textContent = ""; details.hidden = true; details.open = false; basis.textContent = ""; sources.replaceChildren(); reveal(); }, setStatus = (message: string, canRetry = false) => { status.textContent = message; retry.hidden = !canRetry; }, waitForToken = () => { window.clearTimeout(timer); timer = window.setTimeout(() => { if (!token)
           setStatus("Verification is taking too long. Check your connection and try again.", true); }, 8000); }, fail = (message: string) => { window.clearTimeout(timer); token = ""; submit.disabled = true; setStatus(message, true); };
       const initialiseTurnstile = () => { const sitekey = widget?.dataset.sitekey; if (!widget || !sitekey) {
           fail("Verification is unavailable right now.");
@@ -166,6 +168,7 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
               throw new Error(payload.error || "The measuring tape got tangled.");
           const result = payload.result;
           show(result.headline, "Taking that as " + result.interpretation, result.assumption);
+          if (result.estimate) { estimate.textContent = result.estimate.label + ": " + result.estimate.summary; estimate.hidden = false; }
           recentFamilies = result.recentFamilies;
           basis.textContent = result.basis;
           for (const source of result.sources) {
@@ -472,6 +475,14 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
       700 0.67rem/1.25 ui-monospace,
       monospace;
     text-transform: uppercase;
+  }
+  .result-estimate {
+    max-width: 52ch;
+    margin: 0.75rem 0;
+    padding: 0.5rem 0.65rem;
+    border: 2px solid currentColor;
+    background: #fff4a8;
+    font: 700 0.85rem/1.4 system-ui, sans-serif;
   }
   .result-details {
     margin-top: 1rem;

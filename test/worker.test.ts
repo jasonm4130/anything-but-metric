@@ -38,6 +38,55 @@ describe("/api/convert", () => {
     expect(bindings.aiRun).toHaveBeenCalledWith("@cf/meta/llama-3.2-3b-instruct", expect.objectContaining({ temperature: 0.2, max_tokens: 256, response_format: expect.objectContaining({ type: "json_schema" }) }), expect.objectContaining({ gateway: { id: "anything-but-metric", skipCache: true } }));
   });
 
+  it("converts AI-token counts locally with explicit estimate metadata and one selector call", async () => {
+    const bindings = env();
+    const response = await convert(request({ measurement: "1M AI tokens" }), bindings);
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({ result: { dimension: "ai-tokens", quantity: 1e6, sourceUnit: "output tokens", estimate: { energyJoules: { min: 151000, max: 312000 } } } });
+    expect(bindings.aiRun).toHaveBeenCalledTimes(1);
+    expect(bindings.aiRun.mock.calls[0][0]).toBe("@cf/meta/llama-3.2-3b-instruct");
+  });
+
+  it("keeps compact token counts out of the ordinary measurement parser", async () => {
+    const bindings = env();
+    const response = await convert(request({ measurement: "100tokens" }), bindings);
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({ result: { dimension: "ai-tokens", quantity: 100, estimate: expect.any(Object) } });
+    expect(bindings.aiRun.mock.calls.every(([model]) => model === "@cf/meta/llama-3.2-3b-instruct")).toBe(true);
+    const rejected = env([{ recognized: true, quantity: 100, sourceUnit: "J" }]);
+    expect((await convert(request({ measurement: "100totaltokens" }), rejected)).status).toBe(422);
+    expect(rejected.aiRun).not.toHaveBeenCalled();
+  });
+
+  it("returns a useful estimate for one AI token", async () => {
+    const bindings = env();
+    const response = await convert(request({ measurement: "1 AI token" }), bindings);
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({ result: { quantity: 1, estimate: { energyJoules: { min: 0.151, max: 0.312 } } } });
+    expect(bindings.aiRun).not.toHaveBeenCalled();
+  });
+
+  it("keeps a labelled token estimate when the selector fails", async () => {
+    const bindings = env([{ packetId: "invented", energyJoules: 1 }]);
+    const response = await convert(request({ measurement: "1M output tokens" }), bindings);
+    expect(response.status).toBe(200);
+    const { result } = await response.json() as { result: { packetId: string; estimate: { energyJoules: { min: number; max: number } } } };
+    expect(result.packetId).toMatch(/^ai-tokens:/);
+    expect(result.estimate.energyJoules).toEqual({ min: 151000, max: 312000 });
+    expect(bindings.aiRun).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects unsupported input/cached token classes without inference and still verifies tokens first", async () => {
+    for (const measurement of ["1M input tokens", "1M cached tokens", "1.5 tokens"]) {
+      const bindings = env();
+      expect((await convert(request({ measurement }), bindings)).status).toBe(422);
+      expect(bindings.aiRun).not.toHaveBeenCalled();
+    }
+    const bindings = env();
+    expect((await convert(request({ measurement: "1M AI tokens", turnstileToken: "" }), bindings)).status).toBe(403);
+    expect(bindings.aiRun).not.toHaveBeenCalled();
+  });
+
   it("uses the frozen selector prompt and offers only immutable packet IDs", async () => {
     const bindings = env();
     const response = await convert(request({ measurement: "144 jouls" }), bindings);

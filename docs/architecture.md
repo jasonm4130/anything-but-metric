@@ -32,9 +32,13 @@ flowchart TD
 
 Ordinary literals use one model call. Unresolved prose can use two. A failed selector uses an eligible menu item with no retry. A failed extractor or empty menu returns an explicit error. Zero and absolute temperatures have their own semantics; they are not forced into a positive ratio.
 
+## AI-token inputs
+
+A complete AI-token count takes a local path before physical-unit interpretation. Two sourced GPU-energy rates produce an interval; code joins matching appliance comparisons at both endpoints. The ordinary menu, selector and fallback then apply. One candidate skips selection entirely. The required estimate label and output-token assumption travel with the answer, including fallback results. See [AI-token estimates](ai-tokens.md) for scope and exclusions.
+
 ## Facts and creative compositions
 
-`src/data/` contains 93 point references, six composition anchors, six data formats and three animal ranges. Recipes can count equivalent objects, lift them, compare ideal motion, run appliances, cover an area or allocate encoded data across a fixed ensemble. The printed-data recipe defines its own duplex hexadecimal layout and uses sourced paper thickness and Earth diameter.
+`src/data/` contains 94 point references, six composition anchors, six data formats and three animal ranges. Recipes can count equivalent objects, lift them, compare ideal motion, run appliances, cover an area or allocate encoded data across a fixed ensemble. The printed-data recipe defines its own duplex hexadecimal layout and uses sourced paper thickness and Earth diameter.
 
 The reference's size stays independent of the submitted measurement. Published intervals retain both endpoints. A power specification only participates in a physical recipe when its role supports that recipe. An imagined scene does not assert that the object can survive it or the venue can supply its electricity.
 

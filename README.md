@@ -21,12 +21,18 @@ Enter a measurement, press **Convert**, and get one playful comparison. Typos we
 
 These examples were checked on the live site. Results vary; expand **Show the questionable maths** to see the assumptions and sources.
 
+## AI tokens count too
+
+Try **`1M AI tokens`**, **`250k output tokens`** or even **`1 AI token`** in the same input. The converter estimates an energy interval and turns it into a playful comparison. The result clearly labels the benchmark and treats an unspecified count as output tokens; it does not claim to measure your provider's actual consumption.
+
+See [AI-token estimates](docs/ai-tokens.md) for the measured source, arithmetic and treatment of input/cached tokens.
+
 ## Silly comparisons, grounded arithmetic
 
 The model chooses an image from a menu that code has already calculated. It cannot change a reference's size or write its own answer into the result.
 
-- **108 reference entries:** objects, landmarks, appliances, media formats and full animal weight ranges.
-- **407 comparison recipes** reached by the current magnitude sweep, using 17 mechanisms.
+- **109 reference entries:** objects, landmarks, appliances, media formats and full animal weight ranges.
+- **414 comparison recipes** reached by the current magnitude sweep, using 17 mechanisms.
 - **Variety between submissions:** recent source families are avoided while the page stays open.
 - **One small model call for ordinary inputs:** Llama 3.2 3B chooses an offered comparison; unresolved prose gets a separate extraction call.
 - **Useful fallback:** if selection fails, a valid menu item still works. Unsupported measurements and scales get an explicit message.
@@ -53,7 +59,7 @@ npm run eval:corpus   # Frozen acceptance cases and variety sweep
 npm run build         # Static production assets
 ```
 
-The current baseline is **238 tests and 30 development acceptance cases passing**. These checks verify parsing, arithmetic, output contracts, protection and coverage. They are not a promise that every comparison is delightful or every possible unit is supported. See [evaluation notes](docs/evaluation.md).
+The current baseline is **285 tests and 30 development acceptance cases passing**. These checks verify parsing, arithmetic, output contracts, protection and coverage. They are not a promise that every comparison is delightful or every possible unit is supported. See [evaluation notes](docs/evaluation.md).
 
 ## Deploy your own
 
