@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "status": "reviewed-production-reference",
+  "checkedOn": "2026-09-11",
+  "researchScope": "Three institution-owned pages, inspected directly. These are published biological summaries, not individual weigh-ins or sampled population datasets.",
+  "rangePolicy": "Keep both published endpoints. Do not select a midpoint, invent an average, sample a mass, or relabel a range endpoint as the mass of an ordinary animal. The range builder preserves both endpoints.",
+  "references": [
+    {
+      "id": "animal-bare-nosed-wombat-museum-range",
+      "commonName": "bare-nosed wombat",
+      "scientificName": "Vombatus ursinus",
+      "source": {
+        "institution": "Australian Museum",
+        "title": "Bare-nosed Wombat",
+        "url": "https://australian.museum/learn/animals/mammals/bare-nosed-wombat/",
+        "section": "Fast Facts: Size Range",
+        "publishedUpdateAsDisplayed": "07/08/26",
+        "massExcerpt": "Weight is 26 kg (22-39 kg)."
+      },
+      "publishedMass": {
+        "kind": "range",
+        "min": 22,
+        "max": 39,
+        "unit": "kg"
+      },
+      "otherPublishedMassStatement": "The page also supplies 26 kg; retain that as source wording only, not an adopted mean or scalar recipe operand.",
+      "biologicalScope": {
+        "species": "Bare-nosed/common wombat, not either hairy-nosed wombat species.",
+        "lifeStage": "The size paragraph does not explicitly label its mass range adult-only.",
+        "sex": "No sex-specific mass range; the page notes sex and geographic variation.",
+        "setting": "Not identified as captive measurements or a particular study cohort.",
+        "geography": "The mass sentence follows mainland body-length information; geographic scope of mass is not separately explicit. The paragraph warns that Tasmanian and island animals are generally smaller."
+      },
+      "requiredQualifier": "Using the museum's published 22–39 kg bare-nosed wombat range, with geographic variation; no universal wombat mass.",
+      "sceneOpportunity": "A visibly squat imaginary passenger negotiating a luggage allowance; its businesslike motive can vary without adding an animal capability.",
+      "readiness": "Range-aware development only; do not ingest as a single mass."
+    },
+    {
+      "id": "animal-emperor-penguin-hatching-adult-range",
+      "commonName": "emperor penguin",
+      "source": {
+        "institution": "Australian Antarctic Division / Australian Antarctic Program",
+        "title": "Emperor penguin breeding cycle",
+        "url": "https://www.antarctica.gov.au/about-antarctica/animals/penguins/emperor-penguin/breeding-cycle/",
+        "section": "Hatching",
+        "publishedUpdate": "2008-05-16",
+        "massExcerpt": "adult penguins weigh 22 kg to 30 kg at this time of year"
+      },
+      "publishedMass": {
+        "kind": "range",
+        "min": 22,
+        "max": 30,
+        "unit": "kg"
+      },
+      "biologicalScope": {
+        "species": "Emperor penguin.",
+        "lifeStage": "Adults, explicitly contrasted with newly hatched chicks.",
+        "sex": "No separate male/female endpoints; do not call this a male-only range.",
+        "setting": "Natural Antarctic breeding-cycle description, not a captive weigh-in.",
+        "season": "Hatching period, in the section describing females returning in July. Not a year-round adult range; the page describes substantial seasonal mass changes."
+      },
+      "requiredQualifier": "Adult emperor penguins during the hatching period: the published range is 22–30 kg, not a fixed or year-round adult mass.",
+      "sceneOpportunity": "An imaginary formal-looking passenger objecting to being treated as freight; retain the seasonal mass qualification separately.",
+      "readiness": "Range-aware development only. Older institutional page, currently accessible; no claim of a newly measured population range."
+    },
+    {
+      "id": "animal-domestic-rabbit-louisville-range",
+      "commonName": "domestic rabbit",
+      "source": {
+        "institution": "Louisville Zoo",
+        "title": "Rabbit, Domestic",
+        "url": "https://louisvillezoo.org/animalsandplants/rabbit-domestic/",
+        "section": "Size",
+        "publishedUpdate": null,
+        "massExcerpt": "Weight: 2 – 11 pounds"
+      },
+      "publishedMass": {
+        "kind": "range",
+        "min": 2,
+        "max": 11,
+        "unit": "lb"
+      },
+      "biologicalScope": {
+        "species": "Page identifies domestic rabbits; no scientific binomial is supplied on the inspected page.",
+        "breed": "Unspecified; the page separately describes varied domestic forms. Do not assign this range to a named breed or treat it as exhaustive for all breeds.",
+        "lifeStage": "Size range is not explicitly age-qualified.",
+        "sex": "Not specified.",
+        "setting": "General zoo animal profile; the mass line is not explicitly restricted to captive animals or the zoo's own individuals."
+      },
+      "requiredQualifier": "Using Louisville Zoo's published 2–11 lb domestic-rabbit range; breed, age and sex are unspecified.",
+      "sceneOpportunity": "A small imaginary carry-on passenger demanding its own boarding pass; the broad size interval remains visible in the physical comparison.",
+      "readiness": "Useful small-mass range proposal, with weaker biological specificity than the seasonal penguin source. No average rabbit or breed-specific mass is licensed."
+    }
+  ],
+  "calculationContract": {
+    "massEquivalent": "For positive input mass M and positive source range [m_min,m_max], equivalent counts span [M/m_max,M/m_min]. These are quantity equivalents, not counts of complete animals.",
+    "kineticEquivalent": "For positive energy E, ideal speeds span [sqrt(2E/m_max),sqrt(2E/m_min)]. Preserve the whole biological mass range and existing motion/salience bounds; do not claim an animal can run at that speed or survive the scene.",
+    "evidenceBoundary": "Scene opportunities below are fictional creative suggestions. They establish no behavior, physical capability, habitat measurement or factual comedy premise. No benchmark or user-acceptance claim is made."
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "name": "anything-but-metric",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "check": "astro check",
+    "build": "astro build",
+    "test": "vitest run",
+    "deploy": "node scripts/deploy.mjs",
+    "dry-run": "npm run build && wrangler deploy --dry-run",
+    "eval:corpus": "node scripts/check-comparison-corpus.mjs",
+    "secrets:sync": "node scripts/configure-secrets.mjs"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.4",
+    "@cloudflare/vitest-pool-workers": "^0.22.0",
+    "@cloudflare/workers-types": "^5.20260910.1",
+    "astro": "^7.3.2",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0",
+    "wrangler": "^4.130.0"
+  },
+  "dependencies": {
+    "mathjs": "^15.2.0"
+  },
+  "description": "Playful measurement comparisons with code-owned arithmetic and a small model selector.",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jasonm4130/anything-but-metric.git"
+  },
+  "homepage": "https://anythingbutmetric.wtf"
+}

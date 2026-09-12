@@ -1,0 +1,432 @@
+[
+  {
+    "id": "length-red-blood-cell",
+    "dimension": "length",
+    "referenceQuantity": 0.0000075,
+    "referenceUnit": "m",
+    "referenceLabel": "human red blood cells",
+    "assumption": "One normal human red blood cell has a mean diameter of about 7.5 μm, expressed as 0.0000075 m.",
+    "sourceUrl": "https://www.ncbi.nlm.nih.gov/books/NBK263/",
+    "sourceNote": "NIH's NCBI Bookshelf says normal human red blood cells have a mean diameter of about 7.5 μm; conversion to metres is exact."
+  },
+  {
+    "id": "length-fifa-pitch",
+    "dimension": "length",
+    "referenceQuantity": 105,
+    "referenceUnit": "m",
+    "referenceLabel": "FIFA-recommended football pitches",
+    "assumption": "One FIFA-recommended field of play is 105 m long.",
+    "sourceUrl": "https://publications.fifa.com/en/football-stadiums-guidelines/technical-guideline/stadium-guidelines/pitch-dimensions-and-surrounding-areas/",
+    "sourceNote": "FIFA Stadium Guidelines specify recommended field dimensions of 105 m by 68 m."
+  },
+  {
+    "id": "length-earth-diameter",
+    "dimension": "length",
+    "referenceQuantity": 12756000,
+    "referenceUnit": "m",
+    "referenceLabel": "Earth's equatorial diameters",
+    "assumption": "Earth's equatorial diameter is 12,756 km, expressed as 12,756,000 m.",
+    "sourceUrl": "https://science.nasa.gov/earth/facts/",
+    "sourceNote": "NASA gives Earth's equatorial diameter as 12,756 km; conversion to metres is exact."
+  },
+  {
+    "id": "length-six-foot-table",
+    "dimension": "length",
+    "referenceQuantity": 1.8288,
+    "referenceUnit": "m",
+    "referenceLabel": "six-foot folding tables",
+    "assumption": "One Lifetime six-foot folding table is 72 in long, expressed as exactly 1.8288 m.",
+    "sourceUrl": "https://www.lifetime.com/library/pdf/6-foot_folding_table.pdf",
+    "sourceNote": "Lifetime specifies a 72 in by 30 in six-foot folding table; inch-to-metre conversion is exact."
+  },
+  {
+    "id": "mass-iss",
+    "dimension": "mass",
+    "referenceQuantity": 420000,
+    "referenceUnit": "kg",
+    "referenceLabel": "International Space Stations",
+    "assumption": "One International Space Station has a mass of 420,000 kg.",
+    "sourceUrl": "https://ntrs.nasa.gov/api/citations/20180007945/downloads/20180007945.pdf",
+    "sourceNote": "NASA infographic lists ISS mass as 420,000 kg."
+  },
+  {
+    "id": "mass-iphone-17",
+    "dimension": "mass",
+    "referenceQuantity": 0.177,
+    "referenceUnit": "kg",
+    "referenceLabel": "iPhone 17s",
+    "assumption": "One iPhone 17 weighs 177 g, expressed here as 0.177 kg.",
+    "sourceUrl": "https://support.apple.com/en-us/125089",
+    "sourceNote": "Apple technical specifications list iPhone 17 weight as 177 g; g-to-kg conversion is exact."
+  },
+  {
+    "id": "mass-earth",
+    "dimension": "mass",
+    "referenceQuantity": 5.97219e+24,
+    "referenceUnit": "kg",
+    "referenceLabel": "Earths",
+    "assumption": "One Earth has a mass of 5.97219 × 10²⁴ kg.",
+    "sourceUrl": "https://science.nasa.gov/moon/by-the-numbers/",
+    "sourceNote": "NASA's Earth and Moon comparison lists Earth's mass as 5,972,190,000,000,000,000,000,000 kg."
+  },
+  {
+    "id": "energy-iphone-shelf-lift",
+    "dimension": "energy",
+    "referenceQuantity": 1.73577705,
+    "referenceUnit": "J",
+    "referenceLabel": "iPhone 17s lifted onto one-metre shelves",
+    "assumption": "One 0.177 kg iPhone 17 lifted 1 m requires 0.177 kg × 9.80665 m/s² × 1 m = 1.73577705 J.",
+    "sourceUrl": "https://support.apple.com/en-us/125089",
+    "sourceNote": "Apple gives iPhone 17 mass as 177 g; NIST standard gravity is 9.80665 m/s² at https://www.nist.gov/pml/special-publication-811/nist-guide-si-appendix-b-conversion-factors/nist-guide-si-appendix-b8."
+  },
+  {
+    "id": "energy-apple-adapter-minute",
+    "dimension": "energy",
+    "referenceQuantity": 4200,
+    "referenceUnit": "J",
+    "referenceLabel": "Apple 70-watt adapters running for a minute",
+    "assumption": "One Apple 70 W USB-C adapter delivering its rated power for exactly 60 s supplies 70 J/s × 60 s = 4,200 J.",
+    "sourceUrl": "https://www.apple.com/shop/product/mxn53am/a/70w-usb-c-power-adapter",
+    "sourceNote": "Apple identifies the adapter as 70 W; energy is exact arithmetic using NIST's W = J/s definition and a defined 60 s duration."
+  },
+  {
+    "id": "energy-hoover-hour",
+    "dimension": "energy",
+    "referenceQuantity": 7488000000000,
+    "referenceUnit": "J",
+    "referenceLabel": "Hoover Dam powerplants running at nameplate capacity for an hour",
+    "assumption": "One Hoover powerplant operating at its 2,080 MW nameplate capacity for one hour produces 2.08 × 10⁹ J/s × 3,600 s = 7.488 × 10¹² J.",
+    "sourceUrl": "https://www.usbr.gov/lc/hooverdam/faqs/powerfaq.html",
+    "sourceNote": "The U.S. Bureau of Reclamation gives Hoover's nameplate capacity as about 2,080 MW; the one-hour duration and W = J/s arithmetic are explicit reference conditions."
+  },
+  {
+    "id": "area-fifa-pitch",
+    "dimension": "area",
+    "referenceQuantity": 7140,
+    "referenceUnit": "m^2",
+    "referenceLabel": "FIFA-recommended football pitches",
+    "assumption": "One 105 m by 68 m FIFA-recommended pitch has area 7,140 m².",
+    "sourceUrl": "https://publications.fifa.com/en/football-stadiums-guidelines/technical-guideline/stadium-guidelines/pitch-dimensions-and-surrounding-areas/",
+    "sourceNote": "FIFA supplies 105 m and 68 m dimensions; area is exact multiplication."
+  },
+  {
+    "id": "area-fiba-court",
+    "dimension": "area",
+    "referenceQuantity": 420,
+    "referenceUnit": "m^2",
+    "referenceLabel": "FIBA basketball courts",
+    "assumption": "One 28 m by 15 m FIBA court has area 420 m².",
+    "sourceUrl": "https://assets.fiba.basketball/image/upload/documents-corporate-fiba-official-rules-2024-v10a.pdf",
+    "sourceNote": "FIBA Official Basketball Rules specify 28 m by 15 m; area is exact multiplication."
+  },
+  {
+    "id": "area-earth-surface",
+    "dimension": "area",
+    "referenceQuantity": 510064472000000,
+    "referenceUnit": "m^2",
+    "referenceLabel": "Earth surface areas",
+    "assumption": "Earth's surface area is 510,064,472 km², expressed as 510,064,472,000,000 m².",
+    "sourceUrl": "https://science.nasa.gov/moon/by-the-numbers/",
+    "sourceNote": "NASA lists Earth's surface area as 510,064,472 km²; square-kilometre-to-square-metre conversion is exact."
+  },
+  {
+    "id": "area-brunei",
+    "dimension": "area",
+    "referenceQuantity": 5765000000,
+    "referenceUnit": "m^2",
+    "referenceLabel": "Brunei Darussalams",
+    "assumption": "Brunei Darussalam has land area 5,765 km², expressed as 5,765,000,000 m².",
+    "sourceUrl": "https://www.information.gov.bn/SitePages/About%20Brunei%20Darussalam.aspx",
+    "sourceNote": "Brunei's government Information Department gives its total land area as 5,765 km²; square-kilometre-to-square-metre conversion is exact."
+  },
+  {
+    "id": "data-bluray-single",
+    "dimension": "data",
+    "referenceQuantity": 25,
+    "referenceUnit": "GB",
+    "referenceLabel": "single-layer Blu-ray discs",
+    "assumption": "One single-layer Blu-ray Disc holds 25 GB.",
+    "sourceUrl": "https://us.blu-raydisc.com/blog/hd_benefits/capacity/",
+    "sourceNote": "Blu-ray Disc Association states single-layer discs are 25 GB."
+  },
+  {
+    "id": "data-lto9-tape",
+    "dimension": "data",
+    "referenceQuantity": 18000,
+    "referenceUnit": "GB",
+    "referenceLabel": "LTO-9 archive tapes",
+    "assumption": "One LTO-9 data tape has 18 TB native capacity, expressed as 18,000 GB.",
+    "sourceUrl": "https://asset.fujifilm.com/www/co/files/2021-09/005cc2cd954f2b8e902ed456cde19503/FB_LTO9_SellSheet_V1.pdf",
+    "sourceNote": "Fujifilm specifies 18 TB native capacity per LTO-9 cartridge; decimal TB-to-GB conversion is exact."
+  },
+  {
+    "id": "data-iphone-17",
+    "dimension": "data",
+    "referenceQuantity": 256,
+    "referenceUnit": "GB",
+    "referenceLabel": "256-gigabyte iPhone 17s",
+    "assumption": "One 256 GB iPhone 17 configuration has 256 GB of storage capacity.",
+    "sourceUrl": "https://support.apple.com/en-us/125089",
+    "sourceNote": "Apple technical specifications list a 256 GB iPhone 17 capacity option."
+  },
+  {
+    "id": "time-soccer-half",
+    "dimension": "time",
+    "referenceQuantity": 2700,
+    "referenceUnit": "s",
+    "referenceLabel": "regulation football halves",
+    "assumption": "One regulation football half lasts 45 min = 2,700 s before added time.",
+    "sourceUrl": "https://www.theifab.com/laws/latest/the-duration-of-the-match/",
+    "sourceNote": "IFAB Law 7 specifies two equal 45-minute halves; minute-to-second conversion is exact."
+  },
+  {
+    "id": "time-iss-orbit",
+    "dimension": "time",
+    "referenceQuantity": 5400,
+    "referenceUnit": "s",
+    "referenceLabel": "International Space Station orbits",
+    "assumption": "One ISS orbit takes about 90 min, expressed as 5,400 s.",
+    "sourceUrl": "https://www.nasa.gov/missions/station/spot-the-station-frequently-asked-questions/",
+    "sourceNote": "NASA says the ISS orbits Earth once every 90 minutes; minute-to-second conversion is exact."
+  },
+  {
+    "id": "time-solar-day",
+    "dimension": "time",
+    "referenceQuantity": 86400,
+    "referenceUnit": "s",
+    "referenceLabel": "solar days on Earth",
+    "assumption": "One Earth rotation with respect to the Sun takes 24 h, expressed as 86,400 s.",
+    "sourceUrl": "https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/earth/",
+    "sourceNote": "NASA Glenn says Earth completes one revolution every 24 hours with respect to the Sun; hour-to-second conversion is exact."
+  },
+  {
+    "id": "time-twentieth-century",
+    "dimension": "time",
+    "referenceQuantity": 3155760000,
+    "referenceUnit": "s",
+    "referenceLabel": "twentieth centuries",
+    "assumption": "The twentieth century ran from 1901 through 2000 and contained 36,525 Gregorian days, or 3,155,760,000 s.",
+    "sourceUrl": "https://aa.usno.navy.mil/faq/millennium",
+    "sourceNote": "U.S. Naval Observatory identifies the twentieth century as 1901–2000; its Gregorian leap-year rules at https://aa.usno.navy.mil/faq/leap_years yield 25 leap days, so 100 × 365 + 25 = 36,525 days."
+  },
+  {
+    "id": "power-hoover",
+    "dimension": "power",
+    "referenceQuantity": 2080000000,
+    "referenceUnit": "W",
+    "referenceLabel": "Hoover Dam powerplants at nameplate capacity",
+    "assumption": "One Hoover Dam powerplant has about 2,080 MW nameplate capacity, expressed as 2,080,000,000 W.",
+    "sourceUrl": "https://www.usbr.gov/lc/hooverdam/faqs/powerfaq.html",
+    "sourceNote": "The U.S. Bureau of Reclamation gives Hoover's nameplate capacity as about 2,080 MW; conversion to watts is exact."
+  },
+  {
+    "id": "power-apple-adapter",
+    "dimension": "power",
+    "referenceQuantity": 70,
+    "referenceUnit": "W",
+    "referenceLabel": "Apple 70-watt USB-C adapters",
+    "assumption": "One Apple USB-C power adapter is rated at 70 W.",
+    "sourceUrl": "https://www.apple.com/shop/product/mxn53am/a/70w-usb-c-power-adapter",
+    "sourceNote": "Apple product page identifies this adapter as 70 W."
+  },
+  {
+    "id": "power-defined-led",
+    "dimension": "power",
+    "referenceQuantity": 10,
+    "referenceUnit": "W",
+    "referenceLabel": "10-watt LED bulbs",
+    "assumption": "One explicitly defined 10 W LED bulb draws 10 W while lit.",
+    "sourceUrl": "https://www.nist.gov/glossary-term/34606",
+    "sourceNote": "The 10 W lamp is a defined reference condition; NIST defines watt as the unit of power."
+  },
+  {
+    "id": "pressure-standard-atmosphere",
+    "dimension": "pressure",
+    "referenceQuantity": 101325,
+    "referenceUnit": "Pa",
+    "referenceLabel": "standard sea-level air pressure",
+    "assumption": "One standard atmosphere is 101,325 Pa.",
+    "sourceUrl": "https://www.nist.gov/pml/owm/metric-si/unit-conversion/pressure-and-gas-flow-unit-conversions",
+    "sourceNote": "NIST pressure table gives 1 atm = 101,325 Pa."
+  },
+  {
+    "id": "pressure-espresso-extraction",
+    "dimension": "pressure",
+    "referenceQuantity": 900000,
+    "referenceUnit": "Pa",
+    "referenceLabel": "the pressure of a nine-bar espresso extraction",
+    "assumption": "One espresso extraction at Breville's stated 9 bar pressure is 900,000 Pa.",
+    "sourceUrl": "https://www.breville.com/us/en/blog/coffee-and-espresso/what-is-espresso.html",
+    "sourceNote": "Breville states espresso extraction uses 9 bar; 1 bar = 100,000 Pa from NIST's pressure table at https://www.nist.gov/pml/owm/metric-si/unit-conversion/pressure-and-gas-flow-unit-conversions."
+  },
+  {
+    "id": "pressure-car-tyre",
+    "dimension": "pressure",
+    "referenceQuantity": 241316.495,
+    "referenceUnit": "Pa",
+    "referenceLabel": "the gauge pressure of a tyre set to 35 psi",
+    "assumption": "One car tyre explicitly set to 35 psi has pressure 35 × 6,894.757 Pa = 241,316.495 Pa.",
+    "sourceUrl": "https://www.nist.gov/pml/owm/metric-si/unit-conversion/pressure-and-gas-flow-unit-conversions",
+    "sourceNote": "NIST gives 1 psi = 6,894.757 Pa; the 35 psi tyre setting is an explicit familiar reference condition, not a claim about every vehicle."
+  },
+  {
+    "id": "speed-iss",
+    "dimension": "speed",
+    "referenceQuantity": 7777.777778,
+    "referenceUnit": "m/s",
+    "referenceLabel": "the International Space Station orbital speed",
+    "assumption": "The ISS travels about 28,000 km/h, which is about 7,777.777778 m/s.",
+    "sourceUrl": "https://www.nasa.gov/missions/station/spot-the-station-frequently-asked-questions/",
+    "sourceNote": "NASA gives about 28,000 km/h; conversion to m/s divides by 3.6, retaining NASA's approximate character."
+  },
+  {
+    "id": "speed-bolt-100m",
+    "dimension": "speed",
+    "referenceQuantity": 10.438413361,
+    "referenceUnit": "m/s",
+    "referenceLabel": "Usain Bolt’s average world-record sprint speed",
+    "assumption": "Bolt's 100 m record completed in 9.58 s has average speed 100 m ÷ 9.58 s = 10.438413361 m/s.",
+    "sourceUrl": "https://worldathletics.org/athletes/_/14201847",
+    "sourceNote": "World Athletics lists Bolt's 100 m world record as 9.58 s; average speed is direct arithmetic from the event distance and time."
+  },
+  {
+    "id": "speed-light-vacuum",
+    "dimension": "speed",
+    "referenceQuantity": 299792458,
+    "referenceUnit": "m/s",
+    "referenceLabel": "the speed of light in vacuum",
+    "assumption": "One light beam in vacuum travels at exactly 299,792,458 m/s.",
+    "sourceUrl": "https://www.nist.gov/pml/owm/si-units",
+    "sourceNote": "NIST SI material describes the metre through the fixed speed of light in vacuum; 299,792,458 m/s is exact by definition."
+  },
+  {
+    "id": "force-f1-engine",
+    "dimension": "force",
+    "referenceQuantity": 6672332.423,
+    "referenceUnit": "N",
+    "referenceLabel": "Saturn V F-1 engine thrusts",
+    "assumption": "One F-1 engine produced 1.5 million lbf, converted as 1,500,000 × 4.4482216152605 N = 6,672,332.423 N.",
+    "sourceUrl": "https://www.nasa.gov/image-article/this-week-nasa-history-nasa-approved-f-1-engine-contract-nov-18-1966/",
+    "sourceNote": "NASA gives 1.5 million pounds of thrust per F-1 engine; NIST gives 1 lbf = 4.4482216152605 N at standard gravity: https://www.nist.gov/pml/special-publication-811/nist-guide-si-footnotes."
+  },
+  {
+    "id": "force-iphone-weight",
+    "dimension": "force",
+    "referenceQuantity": 1.73577705,
+    "referenceUnit": "N",
+    "referenceLabel": "iPhone 17 weights on a standard-gravity force plate",
+    "assumption": "One 0.177 kg iPhone 17 at standard gravity weighs 0.177 kg × 9.80665 m/s² = 1.73577705 N.",
+    "sourceUrl": "https://support.apple.com/en-us/125089",
+    "sourceNote": "Apple gives 177 g for iPhone 17; NIST gives standard gravity 9.80665 m/s² at https://www.nist.gov/pml/special-publication-811/nist-guide-si-appendix-b-conversion-factors/nist-guide-si-appendix-b8; calculation is direct multiplication."
+  },
+  {
+    "id": "force-iss-earth-weight",
+    "dimension": "force",
+    "referenceQuantity": 4118793,
+    "referenceUnit": "N",
+    "referenceLabel": "International Space Stations on a standard-gravity force plate",
+    "assumption": "One 420,000 kg ISS at standard gravity would weigh 420,000 kg × 9.80665 m/s² = 4,118,793 N.",
+    "sourceUrl": "https://ntrs.nasa.gov/api/citations/20180007945/downloads/20180007945.pdf",
+    "sourceNote": "NASA's 2018 infographic lists ISS mass as 420,000 kg; NIST standard gravity is 9.80665 m/s² at https://www.nist.gov/pml/special-publication-811/nist-guide-si-appendix-b-conversion-factors/nist-guide-si-appendix-b8."
+  },
+  {
+    "id": "force-earth-moon-gravity",
+    "dimension": "force",
+    "referenceQuantity": 198000000000000000000,
+    "referenceUnit": "N",
+    "referenceLabel": "Earth-Moon gravitational pulls",
+    "assumption": "The average Earth-Moon gravitational interaction is 1.98 × 10²⁰ N.",
+    "sourceUrl": "https://pumas.nasa.gov/sites/default/files/examples/08_19_05_1.pdf",
+    "sourceNote": "NASA's PUMAS worked example tabulates the Earth-Moon gravitational interaction as 1.98E+20 N from its stated masses, separation, and gravitational constant."
+  },
+  {
+    "id": "frequency-australian-grid",
+    "dimension": "frequency",
+    "referenceQuantity": 50,
+    "referenceUnit": "Hz",
+    "referenceLabel": "the Australian electricity-grid frequency",
+    "assumption": "Australia's National Electricity Market operates around 50 Hz.",
+    "sourceUrl": "https://www.aemo.com.au/Electricity/National-Electricity-Market-NEM/Security-and-reliability/-/media/80004354B88B4FEF96EAB673DDC99820.ashx",
+    "sourceNote": "AEMO states Australia's NEM operates within a frequency range around 50 Hz."
+  },
+  {
+    "id": "frequency-caesium-transition",
+    "dimension": "frequency",
+    "referenceQuantity": 9192631770,
+    "referenceUnit": "Hz",
+    "referenceLabel": "the caesium-133 clock-transition frequency",
+    "assumption": "The defining caesium-133 transition frequency is 9,192,631,770 Hz.",
+    "sourceUrl": "https://www.bipm.org/documents/20126/28435864/working-document-ID-3644/2a6ce17c-7e50-4164-9bee-64f77bfad895",
+    "sourceNote": "BIPM working document states 9,192,631,770 cycles of the caesium resonance for one second."
+  },
+  {
+    "id": "frequency-tuning-fork",
+    "dimension": "frequency",
+    "referenceQuantity": 440,
+    "referenceUnit": "Hz",
+    "referenceLabel": "a concert-A tuning fork’s frequency",
+    "assumption": "One concert-A tuning fork vibrates at 440 Hz.",
+    "sourceUrl": "https://www.yamaha.com/en/musical_instrument_guide/acoustic_guitar/play/play002.html",
+    "sourceNote": "Yamaha's tuning guide identifies an A tuning fork as 440 Hz."
+  },
+  {
+    "id": "volume-iss-habitable",
+    "dimension": "volume",
+    "referenceQuantity": 388,
+    "referenceUnit": "m^3",
+    "referenceLabel": "International Space Station habitable volumes",
+    "assumption": "One International Space Station has 388 m³ of habitable volume.",
+    "sourceUrl": "https://ntrs.nasa.gov/api/citations/20180007945/downloads/20180007945.pdf",
+    "sourceNote": "NASA infographic lists ISS habitable volume as 388 m³."
+  },
+  {
+    "id": "volume-football-pitch-millimetre-rain",
+    "dimension": "volume",
+    "referenceQuantity": 7.14,
+    "referenceUnit": "m^3",
+    "referenceLabel": "FIFA football pitches under one millimetre of rain",
+    "assumption": "One 105 m by 68 m FIFA pitch covered by a defined 1 mm layer of rain holds 105 m × 68 m × 0.001 m = 7.14 m³.",
+    "sourceUrl": "https://publications.fifa.com/en/football-stadiums-guidelines/technical-guideline/stadium-guidelines/pitch-dimensions-and-surrounding-areas/",
+    "sourceNote": "FIFA supplies the 105 m by 68 m pitch dimensions; the 1 mm rain layer is an explicit bounded scene and volume is direct arithmetic."
+  },
+  {
+    "id": "volume-lake-superior",
+    "dimension": "volume",
+    "referenceQuantity": 12100000000000,
+    "referenceUnit": "m^3",
+    "referenceLabel": "Lake Superiors",
+    "assumption": "One Lake Superior has volume 12,100 km³, expressed as 12,100,000,000,000 m³.",
+    "sourceUrl": "https://repository.library.noaa.gov/view/noaa/34616/noaa_34616_DS1.pdf",
+    "sourceNote": "NOAA lists Lake Superior's volume as 12,100 km³; cubic-kilometre-to-cubic-metre conversion is exact."
+  },
+  {
+    "id": "temperature-water-freezing",
+    "dimension": "temperature",
+    "referenceQuantity": 0,
+    "referenceUnit": "degC",
+    "referenceLabel": "fresh water at its freezing point",
+    "assumption": "Fresh water's freezing point is 0 °C under the conventional Celsius reference.",
+    "sourceUrl": "https://www.nist.gov/pml/owm/si-units-temperature",
+    "sourceNote": "NIST states water freezes at 0 °C on the Celsius scale."
+  },
+  {
+    "id": "temperature-water-boiling",
+    "dimension": "temperature",
+    "referenceQuantity": 100,
+    "referenceUnit": "degC",
+    "referenceLabel": "water at its boiling point",
+    "assumption": "Water's boiling point is about 100 °C on the Celsius scale at standard atmospheric pressure.",
+    "sourceUrl": "https://www.nist.gov/pml/owm/si-units-temperature",
+    "sourceNote": "NIST states water boils at about 100 °C; its source context is the conventional Celsius scale."
+  },
+  {
+    "id": "temperature-liquid-nitrogen",
+    "dimension": "temperature",
+    "referenceQuantity": -196,
+    "referenceUnit": "degC",
+    "referenceLabel": "liquid nitrogen at its boiling point",
+    "assumption": "Liquid nitrogen boils at −196 °C.",
+    "sourceUrl": "https://www.airproducts.com/-/media/files/en/900/900-13-081-us-nov15-liquid-nitrogen-safetygram-7.pdf",
+    "sourceNote": "Air Products safety guidance gives liquid nitrogen's boiling point as −196 °C."
+  }
+]

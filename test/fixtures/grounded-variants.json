@@ -1,0 +1,23 @@
+{
+  "grounded-qwen": {
+    "grounded": true,
+    "catalogPath": "test/fixtures/grounded-references.json",
+    "parserMode": "hybrid",
+    "creativeInputMode": "scale-only",
+    "referenceUnitMode": "model",
+    "creativeModel": "@cf/qwen/qwen3-30b-a3b-fp8",
+    "creativeSuffix": "/no_think",
+    "creativeMaxTokens": 768,
+    "creativeTimeoutMs": 15000
+  },
+  "grounded-llama": {
+    "grounded": true,
+    "catalogPath": "test/fixtures/grounded-references.json",
+    "parserMode": "hybrid",
+    "creativeInputMode": "scale-only",
+    "referenceUnitMode": "model",
+    "creativeModel": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+    "creativeMaxTokens": 768,
+    "creativeTimeoutMs": 15000
+  }
+}

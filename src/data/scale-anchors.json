@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "status": "reviewed-production-reference",
+  "anchors": [
+    {
+      "id": "ensemble-wembley-seats",
+      "kind": "ensemble-count",
+      "referenceQuantity": 90000,
+      "referenceUnit": "seats",
+      "referenceLabel": "Wembley's 90,000 seats",
+      "family": "stadium",
+      "countedEntity": "seat",
+      "fictionFrame": "Imagine one specified appliance at every one of Wembley's 90,000 seats.",
+      "assumption": "Use the published seating capacity as a fixed ensemble size. This does not describe attendance, ownership of appliances, or the stadium's electrical supply.",
+      "sourceUrl": "https://www.wembleystadium.com/about/stadium-facts-and-features",
+      "sourceNote": "The stadium operator lists 90,000 seats."
+    },
+    {
+      "id": "ensemble-a380-certified-seats",
+      "kind": "ensemble-count",
+      "referenceQuantity": 853,
+      "referenceUnit": "seats",
+      "referenceLabel": "an A380's 853 maximum certified passenger places",
+      "family": "airliner",
+      "countedEntity": "certified passenger place",
+      "fictionFrame": "Imagine an A380 arranged at its 853-seat certification limit, with one specified appliance at each place.",
+      "assumption": "853 is maximum certified seating, not typical airline seating or an actual flight's passenger count.",
+      "sourceUrl": "https://www.airbus.com/sites/g/files/jlcbta136/files/2025-01/airbus-a380-facts-and-figures-february-2022.pdf",
+      "sourceNote": "Airbus facts and figures, February 2022, page 3: maximum certified seating 853; the separate typical four-class configuration is 545."
+    },
+    {
+      "id": "ensemble-opera-house-concert-hall",
+      "kind": "ensemble-count",
+      "referenceQuantity": 2664,
+      "referenceUnit": "seats",
+      "referenceLabel": "the Sydney Opera House Concert Hall's 2,664 in-the-round seats",
+      "family": "concert-hall",
+      "countedEntity": "seat",
+      "fictionFrame": "Imagine one specified appliance at each of the Concert Hall's 2,664 seats in its in-the-round arrangement.",
+      "assumption": "Use the venue's maximum in-the-round seating, not its 2,102-seat stage-facing configuration or the entire Opera House capacity.",
+      "sourceUrl": "https://www.sydneyoperahouse.com/visit/our-venues/concert-hall",
+      "sourceNote": "The venue page gives 2,664 in the round and 2,102 facing the stage."
+    },
+    {
+      "id": "ensemble-buckingham-palace-rooms",
+      "kind": "ensemble-count",
+      "referenceQuantity": 775,
+      "referenceUnit": "rooms",
+      "referenceLabel": "Buckingham Palace's 775 rooms",
+      "family": "palace",
+      "countedEntity": "room",
+      "fictionFrame": "Imagine one specified appliance in each of Buckingham Palace's 775 rooms.",
+      "assumption": "The total includes several kinds of rooms. Do not call these 775 bedrooms, residents, or existing appliances.",
+      "sourceUrl": "https://www.royal.uk/royal-residences-buckingham-palace",
+      "sourceNote": "The Royal Household reports 775 rooms and separately enumerates state rooms, bedrooms, offices and bathrooms."
+    },
+    {
+      "id": "ensemble-london-eye-passenger-places",
+      "kind": "ensemble-count",
+      "referenceQuantity": 800,
+      "referenceUnit": "passenger places",
+      "referenceLabel": "800 passenger places across the London Eye's 32 capsules",
+      "family": "observation-wheel",
+      "countedEntity": "passenger place",
+      "derivation": {
+        "capsules": 32,
+        "placesPerCapsule": 25,
+        "operation": "multiply"
+      },
+      "fictionFrame": "Imagine all 32 London Eye capsules filled to 25 places each, with one specified appliance at every place.",
+      "assumption": "800 is a derived simultaneous capacity, not an observed passenger count or hourly throughput. Places do not imply literal seats.",
+      "sourceUrl": "https://www.poma.net/en/work/london-eye-capsule-giant-wheel/",
+      "sourceNote": "The capsule manufacturer states 32 capsules and a capacity of 25 people per capsule: 32 x 25 = 800."
+    },
+    {
+      "id": "mass-eiffel-tower-total",
+      "kind": "mass-anchor",
+      "referenceQuantity": 10100000,
+      "referenceUnit": "kg",
+      "referenceLabel": "the Eiffel Tower at its reported total weight",
+      "singularLabel": "the Eiffel Tower",
+      "family": "tower",
+      "fictionFrame": "Imagine the Eiffel Tower's entire reported mass moving together at one speed.",
+      "assumption": "The operator reports approximately 10,100 tonnes total, including more than the 7,300-tonne metal framework. An ideal kinetic-energy comparison does not assert that the structure could survive movement.",
+      "sourceUrl": "https://www.toureiffel.paris/fr/le-monument/chiffres-cle",
+      "sourceNote": "The operator distinguishes 7,300 tonnes for the metal framework from 10,100 tonnes total weight. Use the total consistently."
+    }
+  ],
+  "materialProperties": [
+    {
+      "id": "water-cp-at-25c-01mpa",
+      "kind": "material-property",
+      "material": "pure-liquid-water",
+      "property": "isobaric-specific-heat-capacity",
+      "referenceQuantity": 4181.44618,
+      "referenceUnit": "J/(kg*K)",
+      "conditions": {
+        "temperatureK": 298.15,
+        "pressurePa": 100000
+      },
+      "assumption": "This is a property at the stated temperature and pressure. Treating it as constant over a temperature rise is an additional approximation.",
+      "sourceUrl": "https://tsapps.nist.gov/publication/get_pdf.cfm?pub_id=832373",
+      "sourceNote": "Patek et al., Reference Correlations for Thermophysical Properties of Liquid Water at 0.1 MPa (2009), Table 8, page 9, row 298.15 K. DOI 10.1063/1.3043575."
+    },
+    {
+      "id": "water-density-at-25c-01mpa",
+      "kind": "material-property",
+      "material": "pure-liquid-water",
+      "property": "mass-density",
+      "referenceQuantity": 997.047013,
+      "referenceUnit": "kg/m3",
+      "conditions": {
+        "temperatureK": 298.15,
+        "pressurePa": 100000
+      },
+      "assumption": "Use this density to determine the mass of the initial freshwater volume at 25 degrees Celsius and 0.1 MPa.",
+      "sourceUrl": "https://tsapps.nist.gov/publication/get_pdf.cfm?pub_id=832373",
+      "sourceNote": "Patek et al. (2009), Table 8, page 9, row 298.15 K: liquid-water mass density at 0.1 MPa."
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+[
+  {
+    "id": "test-energy-action",
+    "referenceQuantity": 100,
+    "referenceUnit": "J",
+    "referenceLabel": "test actions",
+    "assumption": "A bounded test action."
+  }
+]

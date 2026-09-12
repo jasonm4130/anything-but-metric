@@ -1,0 +1,618 @@
+---
+const examples = ["144 jouls", "5 GB", "2 km"];
+const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta
+      name="description"
+      content="A deeply unserious laboratory for very real measurements."
+    />
+    <link rel="icon" type="image/svg+xml" href="/banana-ruler.svg" />
+    <title>Anything But Metric</title>
+    <script
+      is:inline
+      defer
+      src="https://app.skopia.dev/skopia.js"
+      data-site="anything-but-metric"
+      data-endpoint="https://app.skopia.dev/e"
+    ></script>
+  </head>
+  <body>
+    <main>
+      <header class="masthead">
+        <p class="stamp">CERTIFIED / QUESTIONABLY SCIENTIFIC</p>
+        <p class="kicker">THE DEPARTMENT OF EXTREMELY APPROXIMATE SCIENCE</p>
+        <h1><span>ANYTHING</span> <em>BUT</em> <span>METRIC</span></h1>
+        <p class="intro">
+          Put a number in the machine. Receive a much more useful mental
+          picture. Probably.
+        </p>
+        <img
+          class="banana"
+          src="/banana-ruler.svg"
+          width="154"
+          height="154"
+          alt=""
+          aria-hidden="true"
+        />
+        <div class="ticks" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+      </header>
+      <section class="lab" aria-label="Measurement converter">
+        <div class="note" aria-hidden="true">NO BORING UNITS<br />ALLOWED</div>
+        <form id="converter">
+          <label for="prompt">Enter your measurement <span>↓</span></label>
+          <div class="input-row">
+            <input
+              id="prompt"
+              name="prompt"
+              maxlength="500"
+              autocomplete="off"
+              placeholder="try: 144 jouls"
+              required
+            /><button type="submit">
+              Convert <span aria-hidden="true">↗</span>
+            </button>
+          </div>
+          <p class="field-note">Typos welcome. Sensible units optional.</p>
+          {turnstileSiteKey ?
+          <div
+            id="turnstile-widget"
+            class="turnstile"
+            data-sitekey={turnstileSiteKey}
+            aria-label="Verification"
+          ></div>
+          :
+          <p class="verification-error">
+            Verification is unavailable right now.
+          </p>
+          }
+          <p
+            id="verification-status"
+            class="verification-status"
+            aria-live="polite"
+          >
+            Loading verification…
+          </p>
+          <button
+            id="turnstile-retry"
+            class="turnstile-retry"
+            type="button"
+            hidden
+          >
+            Retry verification
+          </button>
+        </form>
+        <div id="result" class="result" aria-live="polite" aria-atomic="true">
+          <p class="result-label">THE IMPORTANT BIT</p>
+          <p id="result-headline" class="result-headline">FEED ME A NUMBER</p>
+          <p id="result-interpretation" class="result-interpretation">
+            I will turn it into something delightfully unhelpful.
+          </p>
+          <p id="result-assumption" class="result-assumption"></p>
+          <details id="result-details" class="result-details" hidden>
+            <summary>Show the questionable maths</summary>
+            <p id="result-basis"></p>
+            <ul id="result-sources"></ul>
+          </details>
+          <img
+            class="duck"
+            src="/rubber-duck.svg"
+            width="84"
+            height="84"
+            alt=""
+            aria-hidden="true"
+          />
+        </div>
+      </section>
+      <nav class="samples" aria-label="Sample measurements">
+        <span>TRY A SAMPLE:</span>{examples.map((example) =>
+        <button class="chip" type="button">{example}</button>)}
+      </nav>
+      <p class="footer-note">
+        <span aria-hidden="true">✦</span> Results are approximate. The silliness
+        is exact.
+      </p>
+    </main>
+    <script is:inline>
+      window.onTurnstileLoad = () =>
+        window.dispatchEvent(new Event("turnstile-ready"));
+    </script>
+    {turnstileSiteKey &&
+    <script
+      is:inline
+      async
+      defer
+      src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad&render=explicit"
+    ></script>
+    }
+    <script>
+      import type { ComparisonResult } from "../lib/comparison-flow";
+      const details = document.querySelector<HTMLDetailsElement>("#result-details")!, basis = document.querySelector<HTMLParagraphElement>("#result-basis")!, sources = document.querySelector<HTMLUListElement>("#result-sources")!;
+      let recentFamilies: string[] = [];
+      const form = document.querySelector<HTMLFormElement>("#converter")!, input = document.querySelector<HTMLInputElement>("#prompt")!, panel = document.querySelector<HTMLDivElement>("#result")!, headline = document.querySelector<HTMLParagraphElement>("#result-headline")!, interpretation = document.querySelector<HTMLParagraphElement>("#result-interpretation")!, assumption = document.querySelector<HTMLParagraphElement>("#result-assumption")!, submit = form.querySelector<HTMLButtonElement>('button[type="submit"]')!, widget = document.querySelector<HTMLDivElement>("#turnstile-widget"), status = document.querySelector<HTMLParagraphElement>("#verification-status")!, retry = document.querySelector<HTMLButtonElement>("#turnstile-retry")!;
+      let token = "", widgetId: string | undefined, timer: number | undefined, pending = false;
+      const reveal = () => { panel.classList.remove("is-fresh"); window.requestAnimationFrame(() => panel.classList.add("is-fresh")); }, show = (main: string, detail = "", note = "") => { headline.textContent = main; interpretation.textContent = detail; assumption.textContent = note; details.hidden = true; details.open = false; basis.textContent = ""; sources.replaceChildren(); reveal(); }, setStatus = (message: string, canRetry = false) => { status.textContent = message; retry.hidden = !canRetry; }, waitForToken = () => { window.clearTimeout(timer); timer = window.setTimeout(() => { if (!token)
+          setStatus("Verification is taking too long. Check your connection and try again.", true); }, 8000); }, fail = (message: string) => { window.clearTimeout(timer); token = ""; submit.disabled = true; setStatus(message, true); };
+      const initialiseTurnstile = () => { const sitekey = widget?.dataset.sitekey; if (!widget || !sitekey) {
+          fail("Verification is unavailable right now.");
+          return;
+      } if (!window.turnstile) {
+          setStatus("Loading verification…");
+          waitForToken();
+          return;
+      } if (widgetId)
+          return; try {
+          widgetId = window.turnstile.render(widget, { sitekey, action: "convert", theme: "light", appearance: "interaction-only", size: window.matchMedia("(max-width: 420px)").matches ? "compact" : "normal", callback: (nextToken) => { window.clearTimeout(timer); token = nextToken; submit.disabled = false; setStatus("Verification complete. Fire when ready."); }, "expired-callback": () => fail("Verification expired. Please try again."), "error-callback": () => fail("Verification could not load. Please try again.") });
+          setStatus("Complete verification to convert.");
+          waitForToken();
+      }
+      catch {
+          fail("Verification could not start. Please try again.");
+      } };
+      const send = async (measurement: string) => { if (pending || !token)
+          return; const controller = new AbortController(), timeout = window.setTimeout(() => controller.abort(), 30000); pending = true; submit.disabled = true; show("CALIBRATING THE NONSENSE…", "A few extremely precise crayons are at work."); try {
+          const response = await fetch("/api/convert", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ measurement, turnstileToken: token, recentFamilies }), signal: controller.signal }), payload = await response.json() as {
+              error?: string;
+              result?: ComparisonResult;
+          };
+          if (!response.ok || !payload.result)
+              throw new Error(payload.error || "The measuring tape got tangled.");
+          const result = payload.result;
+          show(result.headline, "Taking that as " + result.interpretation, result.assumption);
+          recentFamilies = result.recentFamilies;
+          basis.textContent = result.basis;
+          for (const source of result.sources) {
+            const item = document.createElement("li"), link = document.createElement("a");
+            const url = new URL(source.url);
+            if (url.protocol !== "https:") continue;
+            link.href = url.href; link.textContent = source.title; link.target = "_blank"; link.rel = "noopener noreferrer";
+            item.append(link, document.createTextNode(" — " + source.note)); sources.append(item);
+          }
+          details.hidden = false;
+          window.skopia?.track?.("conversion", { dimension: result.dimension });
+      }
+      catch (error) {
+          show("THE LAB SNEEZED.", error instanceof DOMException && error.name === "AbortError" ? "The lab clock ran out. Please try again." : error instanceof Error ? error.message : "The measuring tape got tangled.");
+      }
+      finally {
+          window.clearTimeout(timeout);
+          pending = false;
+          token = "";
+          submit.disabled = true;
+          window.turnstile?.reset(widgetId);
+          setStatus("Complete verification for another conversion.");
+          waitForToken();
+          input.focus();
+      } };
+      submit.disabled = true;
+      window.addEventListener("turnstile-ready", initialiseTurnstile);
+      initialiseTurnstile();
+      retry.addEventListener("click", () => { if (window.turnstile && widgetId) {
+          retry.hidden = true;
+          setStatus("Retrying verification…");
+          window.turnstile.reset(widgetId);
+          waitForToken();
+      }
+      else
+          window.location.reload(); });
+      form.addEventListener("submit", event => { event.preventDefault(); const value = input.value.trim(); if (value && token)
+          void send(value); });
+      document.querySelectorAll<HTMLButtonElement>(".chip").forEach(chip => chip.addEventListener("click", () => { input.value = chip.textContent || ""; input.focus(); }));
+    </script>
+  </body>
+</html>
+<style>
+  :root {
+    color: #10133e;
+    background: #fff9df;
+    font-family:
+      ui-rounded, "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    min-width: 320px;
+    min-height: 100vh;
+    margin: 0;
+    background-color: #fff9df;
+    background-image:
+      linear-gradient(rgb(37 70 216 / 18%) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(37 70 216 / 18%) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  main {
+    width: min(1080px, calc(100% - 2rem));
+    margin: 0 auto;
+    padding: clamp(1.25rem, 4vw, 3.5rem) 0 2.5rem;
+  }
+  .masthead {
+    position: relative;
+    padding: 0.4rem 0 1.6rem;
+  }
+  .stamp {
+    display: inline-block;
+    margin: 0 0 1.4rem;
+    padding: 0.35rem 0.55rem;
+    color: #fff9df;
+    background: #10133e;
+    font:
+      800 clamp(0.6rem, 1.4vw, 0.78rem)/1.1 ui-monospace,
+      monospace;
+    letter-spacing: 0.06em;
+    transform: rotate(-3deg);
+  }
+  .kicker {
+    margin: 0 0 0.55rem;
+    color: #e63d47;
+    font:
+      900 clamp(0.65rem, 1.5vw, 0.84rem)/1 ui-monospace,
+      monospace;
+    letter-spacing: 0.08em;
+  }
+  .masthead h1 {
+    max-width: 840px;
+    margin: 0;
+    color: #2546d8;
+    font-size: clamp(3.1rem, 10.7vw, 8.8rem);
+    font-weight: 1000;
+    letter-spacing: -0.09em;
+    line-height: 0.75;
+    text-shadow: 4px 4px 0 #d8ff38;
+  }
+  .masthead h1 span:last-child {
+    color: #e63d47;
+  }
+  .masthead h1 em {
+    color: #10133e;
+    font-family: Georgia, serif;
+    font-weight: 400;
+    letter-spacing: -0.13em;
+  }
+  .intro {
+    max-width: 500px;
+    margin: 1.35rem 0 0;
+    font:
+      800 clamp(1rem, 2vw, 1.28rem)/1.22 system-ui,
+      sans-serif;
+  }
+  .banana {
+    position: absolute;
+    right: clamp(0rem, 8vw, 6rem);
+    bottom: -0.2rem;
+    width: clamp(100px, 17vw, 154px);
+    height: auto;
+    transform: rotate(8deg);
+  }
+  .ticks {
+    display: flex;
+    align-items: flex-start;
+    gap: clamp(0.45rem, 1.4vw, 1rem);
+    width: min(420px, 78%);
+    margin-top: 1.4rem;
+    border-top: 5px solid #10133e;
+  }
+  .ticks i {
+    width: 4px;
+    height: 13px;
+    background: #10133e;
+  }
+  .ticks i:nth-child(3n) {
+    height: 26px;
+  }
+  .lab {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(260px, 0.95fr);
+    border: 4px solid #10133e;
+    background: #fff9df;
+    box-shadow: 9px 9px 0 #10133e;
+  }
+  .note {
+    position: absolute;
+    top: -1.2rem;
+    right: 1.25rem;
+    z-index: 1;
+    padding: 0.45rem 0.6rem;
+    color: #10133e;
+    background: #d8ff38;
+    border: 3px solid #10133e;
+    font:
+      900 0.66rem/1.05 ui-monospace,
+      monospace;
+    letter-spacing: 0.06em;
+    transform: rotate(4deg);
+  }
+  form {
+    min-width: 0;
+    padding: clamp(1rem, 3vw, 2rem);
+    background: #2546d8;
+    color: #fff9df;
+  }
+  label {
+    display: block;
+    font:
+      900 clamp(1rem, 2.4vw, 1.5rem)/1 system-ui,
+      sans-serif;
+    letter-spacing: -0.04em;
+  }
+  label span {
+    color: #d8ff38;
+  }
+  .input-row {
+    display: flex;
+    gap: 0.55rem;
+    margin-top: 0.8rem;
+  }
+  input {
+    width: 100%;
+    min-width: 0;
+    min-height: 52px;
+    border: 3px solid #10133e;
+    border-radius: 0;
+    background: #fff9df;
+    color: #10133e;
+    font:
+      800 1rem/1 system-ui,
+      sans-serif;
+    padding: 0.8rem;
+    box-shadow: 4px 4px 0 #10133e;
+  }
+  button {
+    min-height: 44px;
+    cursor: pointer;
+    border: 3px solid #10133e;
+    border-radius: 0;
+    color: #10133e;
+    background: #d8ff38;
+    font:
+      900 0.84rem/1 ui-monospace,
+      monospace;
+    padding: 0.75rem 0.85rem;
+  }
+  button:hover,
+  button:focus-visible {
+    color: #fff9df;
+    background: #e63d47;
+    outline: 3px solid #fff9df;
+    outline-offset: 2px;
+  }
+  button:disabled {
+    cursor: wait;
+    opacity: 0.65;
+  }
+  .input-row button {
+    min-height: 52px;
+  }
+  .field-note {
+    margin: 0.7rem 0 0.85rem;
+    color: #d8ff38;
+    font:
+      700 0.72rem/1.25 ui-monospace,
+      monospace;
+  }
+  .turnstile {
+    margin-top: 0.4rem;
+    max-width: 100%;
+  }
+  .verification-status,
+  .verification-error {
+    margin: 0.7rem 0 0;
+    color: #fff9df;
+    font:
+      700 0.72rem/1.25 ui-monospace,
+      monospace;
+  }
+  .verification-error {
+    color: #ffd26c;
+  }
+  .turnstile-retry {
+    margin-top: 0.65rem;
+    color: #10133e;
+    background: #fff9df;
+  }
+  .result {
+    position: relative;
+    min-width: 0;
+    min-height: 270px;
+    overflow: hidden;
+    padding: clamp(1.2rem, 3vw, 2.3rem);
+    background: #ff715b;
+    color: #10133e;
+  }
+  .result::before {
+    position: absolute;
+    inset: 0;
+    content: "";
+    opacity: 0.08;
+    background: repeating-linear-gradient(
+      135deg,
+      transparent 0 14px,
+      #10133e 14px 16px
+    );
+    pointer-events: none;
+  }
+  .result > * {
+    position: relative;
+  }
+  .result-label {
+    margin: 0 0 1rem;
+    font:
+      900 0.72rem/1 ui-monospace,
+      monospace;
+    letter-spacing: 0.09em;
+  }
+  .result-headline {
+    margin: 0;
+    max-width: 12ch;
+    font-size: clamp(2.3rem, 5vw, 4.8rem);
+    font-weight: 1000;
+    letter-spacing: -0.075em;
+    line-height: 0.82;
+    overflow-wrap: anywhere;
+  }
+  .result-interpretation {
+    margin: 1.2rem 0 0.65rem;
+    max-width: 33ch;
+    font:
+      700 0.93rem/1.25 system-ui,
+      sans-serif;
+  }
+  .result-assumption {
+    margin: 0;
+    max-width: 34ch;
+    font:
+      700 0.67rem/1.25 ui-monospace,
+      monospace;
+    text-transform: uppercase;
+  }
+  .result-details {
+    margin-top: 1rem;
+    padding: 0.65rem 0.8rem;
+    border: 2px dashed currentColor;
+    max-width: 54ch;
+    font: 500 0.78rem/1.5 system-ui, sans-serif;
+    overflow-wrap: anywhere;
+  }
+  .result-details summary { cursor: pointer; font-weight: 800; }
+  .result-details p { margin: 0.7rem 0; }
+  .result-details ul { padding-left: 1.2rem; margin-bottom: 0; }
+  .result-details li + li { margin-top: 0.5rem; }
+  .result-details a { color: inherit; text-underline-offset: 0.15em; }
+  .result-quip {
+    margin: 0.75rem 0 0;
+    max-width: 29ch;
+    font:
+      italic 700 0.9rem/1.2 Georgia,
+      serif;
+  }
+  .duck {
+    position: absolute;
+    right: 0.6rem;
+    bottom: 0.45rem;
+    width: clamp(52px, 10vw, 84px);
+    height: auto;
+    transform: rotate(-8deg);
+  }
+  .result.is-fresh .result-headline {
+    animation: pop 0.38s cubic-bezier(0.2, 1.45, 0.5, 1);
+  }
+  @keyframes pop {
+    from {
+      transform: rotate(-2deg) scale(0.84);
+      opacity: 0.1;
+    }
+    to {
+      transform: rotate(0) scale(1);
+      opacity: 1;
+    }
+  }
+  .samples {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem;
+    margin: 1.9rem 0 0;
+  }
+  .samples > span {
+    font:
+      900 0.72rem/1 ui-monospace,
+      monospace;
+    letter-spacing: 0.08em;
+  }
+  .chip {
+    min-height: 44px;
+    background: #fff9df;
+    box-shadow: 3px 3px 0 #10133e;
+  }
+  .chip:nth-of-type(2) {
+    background: #d8ff38;
+    transform: rotate(-2deg);
+  }
+  .chip:nth-of-type(3) {
+    background: #ff715b;
+    transform: rotate(2deg);
+  }
+  .footer-note {
+    margin: 1.5rem 0 0;
+    font:
+      800 0.75rem/1.2 ui-monospace,
+      monospace;
+  }
+  .footer-note span {
+    color: #e63d47;
+    font-size: 1.5rem;
+    vertical-align: middle;
+  }
+  @media (max-width: 620px) {
+    main {
+      width: min(100% - 1.25rem, 1080px);
+    }
+    .masthead {
+      padding-bottom: 1.4rem;
+    }
+    .masthead h1 {
+      font-size: clamp(3rem, 15vw, 5.3rem);
+    }
+    .banana {
+      right: -0.25rem;
+      bottom: 0.2rem;
+      width: 98px;
+    }
+    .intro {
+      max-width: 70%;
+    }
+    .lab {
+      grid-template-columns: 1fr;
+      box-shadow: 6px 6px 0 #10133e;
+    }
+    .result {
+      min-height: 230px;
+    }
+    .note {
+      right: 0.6rem;
+    }
+    .input-row {
+      flex-direction: column;
+    }
+    .input-row button {
+      width: 100%;
+    }
+    .samples {
+      margin-top: 1.6rem;
+    }
+  }
+  @media (max-width: 360px) {
+    .masthead h1 {
+      font-size: 3rem;
+    }
+    .banana {
+      display: none;
+    }
+    .intro {
+      max-width: 100%;
+    }
+    .note {
+      font-size: 0.56rem;
+    }
+    .result-headline {
+      font-size: 2.2rem;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>

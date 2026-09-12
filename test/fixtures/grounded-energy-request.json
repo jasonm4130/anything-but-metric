@@ -1,0 +1,47 @@
+{
+  "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+  "input": {
+    "messages": [
+      {
+        "role": "system",
+        "content": "Select one offered referenceId and write one concise, required dry joke. Return only referenceId and quip. Do not add factual, numeric, medical, or scientific claims. Do not alter or restate the object's physical basis."
+      },
+      {
+        "role": "user",
+        "content": "ID: energy-iphone-shelf-lift\nLABEL: iPhone 17s lifted onto one-metre shelves\nBASIS: One 0.177 kg iPhone 17 lifted 1 m requires 0.177 kg × 9.80665 m/s² × 1 m = 1.73577705 J."
+      }
+    ],
+    "temperature": 0.75,
+    "max_tokens": 768,
+    "response_format": {
+      "type": "json_schema",
+      "json_schema": {
+        "type": "object",
+        "properties": {
+          "referenceId": {
+            "type": "string",
+            "enum": [
+              "energy-iphone-shelf-lift"
+            ]
+          },
+          "quip": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          }
+        },
+        "required": [
+          "referenceId",
+          "quip"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "options": {
+    "gateway": {
+      "id": "anything-but-metric",
+      "skipCache": true
+    }
+  }
+}

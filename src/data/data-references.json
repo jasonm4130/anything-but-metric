@@ -1,0 +1,175 @@
+{
+  "schemaVersion": 1,
+  "status": "reviewed-production-reference",
+  "inputDimension": "data-size",
+  "inputUnit": "B",
+  "unitConvention": "One byte is eight bits. Numeric kbit/s, Mbit/s and MB/s rates below use decimal prefixes; PB examples mean 10^15 bytes, not PiB.",
+  "calculationContract": {
+    "duration": "seconds = inputBytes / referenceQuantity for B/s rows",
+    "count": "equivalentCount = inputBytes / referenceQuantity for B rows",
+    "fixedEnsemble": "For an independently sourced fixed ensemble, divide by its count as well. Every member consumes or stores separate data. Shared playback of one stored file does not multiply storage.",
+    "boundsPolicy": "The bounds are proposed salience limits, not empirical quality thresholds. Omit a candidate outside its limits; never clamp a result, alter the bitrate, invent a group size, or imply a partial file is complete.",
+    "precisionPolicy": "Use approximately for published approximate or target rates. Exact encoding calculations still become approximate when displayed with rounded counts or durations.",
+    "fictionPolicy": "A recording of a silly subject is allowed, but its contents are invented. Do not claim an actual podcast, movie, book, album, photo library, or audience has these properties. Duration measures media payload, not human attention, battery life, uninterrupted camera operation, or elapsed production time."
+  },
+  "references": [
+    {
+      "id": "data-podcast-spotify-96k",
+      "kind": "media-rate",
+      "family": "podcast-listening",
+      "referenceQuantity": 12000,
+      "referenceUnit": "B/s",
+      "referenceLabel": "podcast audio at Spotify's approximately 96-kbit/s quality",
+      "evidenceType": "published-approximate-rate",
+      "derivation": {
+        "bitsPerSecond": 96000,
+        "bitsPerByte": 8
+      },
+      "assumption": "Use a constant 96,000-bit/s audio-payload approximation. This selects Spotify's non-web podcast quality, excluding its mobile low-quality setting; it is not a universal podcast bitrate. Ignore transport overhead, artwork and metadata.",
+      "fictionFrame": "Imagine an audio-only podcast on an invented topic, encoded at this stated rate.",
+      "eligibleSeconds": {
+        "min": 1,
+        "max": 31536000
+      },
+      "allowFixedEnsemble": true,
+      "sourceUrl": "https://support.spotify.com/ws/article/audio-quality/",
+      "sourceNote": "The Podcast quality section gives approximately 96 kbit/s except the web player (128 kbit/s), with a separate 24-kbit/s mobile low-quality option."
+    },
+    {
+      "id": "data-stereo-pcm-44100-16",
+      "kind": "media-rate",
+      "family": "stereo-audio-recording",
+      "referenceQuantity": 176400,
+      "referenceUnit": "B/s",
+      "referenceLabel": "uncompressed stereo audio sampled 44,100 times a second at 16 bits per channel",
+      "evidenceType": "defined-encoding-derived-exactly",
+      "derivation": {
+        "samplesPerSecondPerChannel": 44100,
+        "bitsPerSample": 16,
+        "channels": 2,
+        "bitsPerByte": 8
+      },
+      "assumption": "Explicitly select two-channel 44.1-kHz 16-bit PCM: 44,100 x 16 x 2 / 8 = 176,400 bytes per second. Count the sample payload only, without a WAVE header, tags, compression or error correction. Do not claim the size of an entire audio CD.",
+      "fictionFrame": "Imagine recording an invented sound in this specified uncompressed stereo format.",
+      "eligibleSeconds": {
+        "min": 1,
+        "max": 31536000
+      },
+      "allowFixedEnsemble": true,
+      "sourceUrl": "https://learn.microsoft.com/en-us/windows/win32/api/mmeapi/ns-mmeapi-waveformatex",
+      "sourceNote": "Microsoft defines stereo as two channels and PCM byte rate as sample rate times block alignment, with block alignment equal to channels times bits per sample divided by eight. Its documented options include 44.1 kHz and 16 bits."
+    },
+    {
+      "id": "data-prores-422hq-uhd-24p",
+      "kind": "media-rate",
+      "family": "edited-video",
+      "referenceQuantity": 88375000,
+      "referenceUnit": "B/s",
+      "referenceLabel": "4K video encoded as ProRes 422 HQ at 3840 x 2160 and 24p",
+      "evidenceType": "published-target-rate",
+      "derivation": {
+        "targetMegabitsPerSecond": 707,
+        "bitsPerMegabit": 1000000,
+        "bitsPerByte": 8
+      },
+      "assumption": "Use Apple's 707-Mbit/s target for this exact resolution, frame rate and codec, treated as a constant for the comparison. ProRes is variable bitrate: actual frames and clips vary. Count video payload; exclude audio, container and metadata overhead. This is a production codec, not a streaming-service rate.",
+      "fictionFrame": "Imagine a video of an invented subject kept in this specified editing format.",
+      "eligibleSeconds": {
+        "min": 1,
+        "max": 31536000
+      },
+      "allowFixedEnsemble": true,
+      "sourceUrl": "https://www.apple.com/final-cut-pro/docs/Apple_ProRes.pdf",
+      "sourceNote": "Apple ProRes white paper, April 2022, page 20 target-rate table: QFHD 3840 x 2160, 24p, ProRes 422 HQ = 707 Mb/s. Page 11 explains variable bitrate and target rates."
+    },
+    {
+      "id": "data-ursa-cine-12k-raw3to1-24fps",
+      "kind": "media-rate",
+      "family": "cinema-camera-footage",
+      "referenceQuantity": 1194000000,
+      "referenceUnit": "B/s",
+      "referenceLabel": "12K cinema footage in Blackmagic RAW 3:1 at 24 frames per second",
+      "evidenceType": "published-mode-storage-rate",
+      "derivation": {
+        "publishedMegabytesPerSecond": 1194,
+        "decimalBytesPerMegabyte": 1000000
+      },
+      "assumption": "Select URSA Cine 12K LF recording at 12,288 x 8,040, 24 fps, Blackmagic RAW 3:1, using the published 1,194 MB/s storage rate as nominal and decimal MB. This is not a Q0 variable-quality rate, another crop, generic 12K streaming or a claim that one camera can record continuously for the resulting duration.",
+      "fictionFrame": "Imagine an accumulated production archive of an invented subject filmed in this exact cinema-camera mode.",
+      "eligibleSeconds": {
+        "min": 1,
+        "max": 31536000
+      },
+      "allowFixedEnsemble": true,
+      "sourceUrl": "https://www.blackmagicdesign.com/products/blackmagicursacine/techspecs",
+      "sourceNote": "URSA Cine 12K LF Storage Rates specifies 24 fps, 12K 12,288 x 8,040, Blackmagic RAW 3:1 at 1,194 MB/s. Nearby Q modes have ranges and must not be substituted."
+    },
+    {
+      "id": "data-defined-ascii-page-2000",
+      "kind": "defined-content-size",
+      "family": "plain-text-writing",
+      "referenceQuantity": 2000,
+      "referenceUnit": "B",
+      "referenceLabel": "imagined plain-text pages containing exactly 2,000 ASCII characters each",
+      "evidenceType": "defined-content-plus-encoding-standard",
+      "derivation": {
+        "asciiCharactersIncludingWhitespace": 2000,
+        "bytesPerAsciiCharacterInUtf8": 1
+      },
+      "assumption": "A page is explicitly defined here as exactly 2,000 ASCII characters, including every space and line break, encoded in UTF-8 without a byte-order mark, compression or metadata. The standard supports one byte per ASCII character; the page length is our fictional definition, not an average book page. This says nothing about paper thickness, reading speed or words per page.",
+      "fictionFrame": "Imagine pages of invented plain-text writing, each exactly 2,000 ASCII characters long.",
+      "eligibleCount": {
+        "min": 1,
+        "max": 10000
+      },
+      "allowFixedEnsemble": false,
+      "sourceUrl": "https://www.rfc-editor.org/rfc/rfc3629",
+      "sourceNote": "RFC 3629 sections 2 and 3 map U+0000 through U+007F to individual octets. The 2,000-character page size is an explicitly defined prop, not a sourced publishing convention."
+    },
+    {
+      "id": "data-defined-square-rgb24-image",
+      "kind": "defined-content-size",
+      "family": "uncompressed-pictures",
+      "referenceQuantity": 50331648,
+      "referenceUnit": "B",
+      "referenceLabel": "uncompressed 4096-by-4096-pixel pictures with 24-bit RGB color",
+      "evidenceType": "defined-image-plus-encoding-derived-exactly",
+      "derivation": {
+        "widthPixels": 4096,
+        "heightPixels": 4096,
+        "bitsPerPixel": 24,
+        "bitsPerByte": 8
+      },
+      "assumption": "Define a 4096 x 4096 image with three 8-bit color channels: 4096 x 4096 x 24 / 8 = 50,331,648 bytes of packed pixel data. Exclude file headers, metadata, alpha and compression. This is not a JPEG, PNG, phone-photo average or camera RAW-file size.",
+      "fictionFrame": "Imagine pictures of an invented subject stored as these explicitly defined uncompressed pixel arrays.",
+      "eligibleCount": {
+        "min": 1,
+        "max": 10000
+      },
+      "allowFixedEnsemble": true,
+      "sourceUrl": "https://learn.microsoft.com/en-us/windows/win32/gdiplus/-gdiplus-types-of-bitmaps-about",
+      "sourceNote": "Microsoft explains direct 24-bit bitmap color as 8 bits each for red, green and blue. The square dimensions are a fixed fictional choice; only pixel payload is counted."
+    }
+  ],
+  "ensembleSuggestion": {
+    "existingAnchorId": "ensemble-wembley-seats",
+    "count": 90000,
+    "sourceUrl": "https://www.wembleystadium.com/about/stadium-facts-and-features",
+    "fictionFrame": "Imagine one person in every Wembley seat, each with a separate recording or separate stored files.",
+    "assumption": "Use the sourced 90,000 seats, not an observed crowd. Each person's allocation is separate data; do not multiply a single shared file by its audience. This is not a claim about the venue's network or real attendees.",
+    "calculation": "secondsPerPerson = inputBytes / (90000 x bytesPerSecond); picturesPerPerson = inputBytes / (90000 x bytesPerPicture)",
+    "bounds": "Apply each reference's duration or per-person count limits unchanged. An optional ensemble is selected by its fixed identity, never by fitting its count to the input."
+  },
+  "rejectedShortcuts": [
+    {
+      "candidate": "Netflix 4K at 7 GB/hour",
+      "reason": "The official figure is an upper bound, not a fixed bitrate or average movie size. An equality conversion would overstate precision.",
+      "sourceUrl": "https://help.netflix.com/en/node/87"
+    },
+    {
+      "candidate": "Canon EOS R5 RAW at approximately 45.4 MB per photo",
+      "reason": "The mode is sourced, but file size varies and the displayed MB convention is not defined on the inspected page. Prefer the explicitly defined image-payload primitive until the convention is verified.",
+      "sourceUrl": "https://cam.start.canon/en/C003/manual/html/UG-09_Reference_0100.html"
+    }
+  ]
+}
