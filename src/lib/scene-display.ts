@@ -133,3 +133,18 @@ export function displayHeadlineForScene(packet: ScenePacket): string {
 export function withSceneDisplay(packet: ScenePacket): ScenePacket & { displayHeadline: string } {
   return { ...packet, displayHeadline: displayHeadlineForScene(packet) };
 }
+
+/** Range text is calculated by code; preserve named appliances and ensemble scope. */
+export function displayEnergyDurationRange(packet: ScenePacket, duration: string): string | undefined {
+  const ensemble = packet.mechanism === "ensemble-appliance";
+  const source = packet.sources[ensemble ? 1 : 0];
+  const appliance = noun(applianceNouns, source?.id) ?? source?.singularLabel;
+  if (!appliance) return undefined;
+  if (ensemble) {
+    const place = noun(ensemblePlaces, packet.sources[0]?.id);
+    return place ? `${sentence(appliance)} at ${place} for ${duration}` : undefined;
+  }
+  if (packet.mechanism === "run-appliance") return `Enough energy to run ${appliance} for ${duration}`;
+  if (packet.mechanism === "generate-energy") return `The energy ${appliance} would generate in ${duration}`;
+  return undefined;
+}

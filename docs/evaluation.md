@@ -7,7 +7,7 @@ npm test
 npm run eval:corpus
 ```
 
-The current baseline is 238 passing Worker/library tests and 30 passing development acceptance cases. The corpus sweep reaches 407 distinct recipe IDs across 17 mechanisms. Those IDs are compositions of 108 active reference entries, not 407 independently researched facts.
+The current baseline is 285 passing Worker/library tests and 30 passing development acceptance cases. The corpus sweep reaches 414 distinct recipe IDs across 17 mechanisms. Those IDs are compositions of 109 active reference entries, not 414 independently researched facts.
 
 ## What the checks establish
 
@@ -30,3 +30,6 @@ Luna generated 85 candidate reference rows in two batches. Independent source re
 The September 2026 release passed five fresh live parser/selector probes, then two public browser conversions (`144 jouls` and `2 PB`) with actual Turnstile verification. A request without a token returned 403. These were representative release checks, not a broad live holdout or a service-level benchmark. Raw research-session logs and personal deployment records are not part of this public repository.
 
 Several `evals/` files preserve earlier fixture names and statuses because regression tests use those exact inputs. Production uses `src/data/`; editing an old fixture alone does not change live reference data. The research modules retained in `src/lib/` support those tests; `comparison-flow.ts` identifies the production entry point.
+
+
+AI-token regression tests additionally cover exact decimal counts, compact token suffixes, supported token classes, both benchmark endpoints and explicit estimate metadata. They do not infer proprietary-model energy consumption from a billing total. The benchmark profile and its limitations are documented in [AI-token estimates](ai-tokens.md).

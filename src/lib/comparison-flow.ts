@@ -1,9 +1,9 @@
 import { createScenePoolBuilder, type ScenePacket, recentFamilyLimit } from "./scene-packets";
 import { createRangeSceneBuilder, type RangeScene } from "./range-scenes";
 import { createMotionSceneBuilder } from "./motion-anchors";
-import { displayHeadlineForScene } from "./scene-display";
+import { displayEnergyDurationRange, displayHeadlineForScene } from "./scene-display";
 import { printedDataComparison } from "./printed-data";
-import { validateMeasurement } from "./convert";
+import { formatNumber, validateMeasurement } from "./convert";
 import references from "../data/references.json";
 import additions from "../data/reference-additions.json";
 import corpus from "../data/corpus-additions.json";
@@ -24,6 +24,7 @@ export type ComparisonResult = {
   packetId: string; family: string; headline: string; assumption: string; basis: string;
   sources: ComparisonSource[]; dimension: string; quantity: number; sourceUnit: string;
   interpretation: string; recentFamilies: string[];
+  estimate?: { label: string; summary: string; energyJoules: { min: number; max: number }; profileId: string };
 };
 
 const catalog = [...references, ...additions, ...corpus];
@@ -89,8 +90,11 @@ export function comparisonPool(measurement: { quantity: number; sourceUnit: stri
 
 /** History is checked across every representation, before choosing a small model menu. */
 export function comparisonMenu(measurement: { quantity: number; sourceUnit: string }, history: string[] = [], seed = 0): ComparisonPacket[] {
+  return menuFromComparisons(comparisonPool(measurement), history, seed);
+}
+
+export function menuFromComparisons(pool: ComparisonPacket[], history: string[] = [], seed = 0): ComparisonPacket[] {
   if (!validRecentFamilies(history)) throw new Error("invalid_recent_families");
-  const pool = comparisonPool(measurement);
   const exclusions = [...history];
   let eligible = pool.filter(p => !p.families.some(f => exclusions.includes(f)));
   // Only relax the oldest exclusions when all available families are exhausted.
@@ -130,4 +134,28 @@ export function comparisonResult(packet: ComparisonPacket, measurement: { quanti
   const interpretation = `${quantity === validated.quantity ? "" : "≈ "}${quantity} ${validated.sourceUnit}`;
   const recentFamilies = [...history.filter(f => !packet.families.includes(f)), ...packet.families].slice(-recentFamilyLimit);
   return { packetId: packet.id, family: packet.family, headline: packet.headline, assumption: packet.assumption, basis: packet.basis, sources: packet.sources, dimension: validated.dimension, quantity: validated.quantity, sourceUnit: validated.sourceUnit, interpretation, recentFamilies };
+}
+
+/** Both scenario endpoints must pass the existing duration and scale bounds. */
+export function energyDurationRangePool(minJoules: number, maxJoules: number): ComparisonPacket[] {
+  if (!Number.isFinite(minJoules) || !Number.isFinite(maxJoules) || minJoules < 0 || maxJoules < minJoules) throw new Error("invalid_energy_interval");
+  const lower = baseScenes({ quantity: minJoules, sourceUnit: "J" });
+  const upper = new Map(baseScenes({ quantity: maxJoules, sourceUnit: "J" }).map(packet => [packet.id, packet]));
+  const result: ComparisonPacket[] = [];
+  for (const low of lower) {
+    if (!["run-appliance", "generate-energy", "ensemble-appliance"].includes(low.mechanism)) continue;
+    const high = upper.get(low.id);
+    if (!high || low.computed.unit !== "s" || high.computed.unit !== "s") continue;
+    const min = low.computed.value, max = high.computed.value;
+    if (min > max) continue;
+    const [divisor, label] = [[31557600, "years"], [86400, "days"], [3600, "hours"], [60, "minutes"], [1, "seconds"]].find(([divisor]) => min >= Number(divisor)) ?? [1, "seconds"];
+    const duration = `${formatNumber(min / Number(divisor))}–${formatNumber(max / Number(divisor))} ${label}`;
+    const headline = displayEnergyDurationRange(low, duration);
+    if (!headline) continue;
+    result.push({ ...adapt(low), headline, assumption: "An illustrative GPU-energy interval, not measured personal usage.",
+      basis: `${low.basis} Both interval endpoints use the same reference and formula.`,
+      computed: { min, max, unit: "s", formula: low.computed.formula, lowerOperands: low.computed.operands, upperOperands: high.computed.operands }
+    });
+  }
+  return result;
 }

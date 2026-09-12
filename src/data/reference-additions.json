@@ -232,5 +232,18 @@
     "sourceUrl": "https://hub.yamaha.com/drums/d-how-to/how-to-get-the-most-out-of-your-e-drum-metronome/",
     "sourceNote": "Yamaha recommends starting a metronome exercise at 60 BPM. One beat per second follows from 60 seconds per minute.",
     "checkedAt": "2026-09-12"
+  },
+  {
+    "id": "power-defined-one-watt-light",
+    "dimension": "power",
+    "referenceQuantity": 1,
+    "referenceUnit": "W",
+    "referenceLabel": "defined one-watt lights",
+    "singularLabel": "an imagined one-watt light",
+    "scenarioRole": "power-consumer",
+    "family": "defined-led",
+    "assumption": "Imagine a light specified to draw exactly 1 W electrically while on. This is a defined comparison prop, not a measured typical lamp; assume constant input power.",
+    "sourceUrl": "https://www.nist.gov/glossary-term/34606",
+    "sourceNote": "NIST defines one watt as one joule per second. The one-watt light is an explicitly chosen illustration, not a product specification."
   }
 ]

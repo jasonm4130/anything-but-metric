@@ -1,0 +1,15 @@
+{
+  "id": "qwen3-32b-b200-scenario-span",
+  "label": "Illustrative AI energy estimate",
+  "model": "Qwen 3 32B",
+  "hardware": "one NVIDIA B200 GPU",
+  "joulesPerGeneratedToken": { "min": 0.151, "max": 0.312 },
+  "lowerScenario": "Text Conversation, maximum batch size 512",
+  "upperScenario": "Problem Solving, maximum batch size 128",
+  "measurementBoundary": "Steady-state GPU energy divided by generated tokens, using vLLM 0.11.1; not a measurement of your provider or a universal range across models.",
+  "exclusions": "Does not include whole-datacenter overhead, cooling, training or your device. Input and cached tokens are not separately priced by this benchmark.",
+  "sourceTitle": "ML.ENERGY: Where Do the Joules Go? (Table 1)",
+  "sourceUrl": "https://arxiv.org/html/2601.22076v1#S3.T1",
+  "sourceNote": "Two measured Qwen 3 32B configurations on one B200: 0.151 and 0.312 joules per generated token. This span compares scenarios; it is not a confidence interval.",
+  "checkedOn": "2026-09-12"
+}

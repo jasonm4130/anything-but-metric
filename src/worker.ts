@@ -1,5 +1,6 @@
+import { parseTokenUsage, tokenComparisonMenu, tokenComparisonResult } from "./lib/ai-tokens";
 import { InvalidComparisonError, validateMeasurement, referenceTextLimits, type ComparisonValidationReason } from "./lib/convert";
-import { comparisonMenu, comparisonResult, selectedComparison, selectionInput, selectionSchema, selectorModel, selectorPrompt, validRecentFamilies } from "./lib/comparison-flow";
+import { comparisonMenu, comparisonResult, selectedComparison, selectionInput, selectionSchema, selectorModel, selectorPrompt, validRecentFamilies, type ComparisonPacket } from "./lib/comparison-flow";
 import { interpretMeasurement } from "./lib/measurement";
 
 export { interpretMeasurement } from "./lib/measurement";
@@ -219,41 +220,48 @@ export async function convert(request: Request, env: Env): Promise<Response> {
   if (!turnstileToken) return error("Please complete verification before converting.", requestId, 403);
   if (!await verifyTurnstile(turnstileToken, ip, env.TURNSTILE_SECRET_KEY)) return error("Verification expired or failed. Please try again.", requestId, 403);
 
-  let parsed: ParsedMeasurement;
-  const parserStarted = Date.now();
-  try {
-    parsed = await interpretMeasurement(measurement, async input => parseMeasurement(await runStage(env, "parser", PARSER_MODEL, parserPrompt, input, 0, 128, 5_000, parserSchema)));
-  } catch (cause) {
-    const stageError = cause instanceof StageError ? cause : new StageError("parser", PARSER_MODEL, Date.now() - parserStarted, "invalid_output");
-    logStageError(requestId, stageError);
-    if (stageError.reason === "rate_limited") return error("The comparison engine is busy. Please try again shortly.", requestId, 429);
-    return error("The measurement reader is unavailable. Please try again.", requestId, 502);
-  }
-  if (!parsed.recognized) return error("I couldn't recognise that measurement yet. Try a number and unit, such as 144 J.", requestId, 422);
+  const tokenUsage = parseTokenUsage(measurement);
+  if (tokenUsage?.kind === "invalid") return error(tokenUsage.message, requestId, 422);
+  let validated: ReturnType<typeof validateMeasurement> | undefined;
+  if (!tokenUsage) {
+    let parsed: ParsedMeasurement;
+    const parserStarted = Date.now();
+    try {
+      parsed = await interpretMeasurement(measurement, async input => parseMeasurement(await runStage(env, "parser", PARSER_MODEL, parserPrompt, input, 0, 128, 5_000, parserSchema)));
+    } catch (cause) {
+      const stageError = cause instanceof StageError ? cause : new StageError("parser", PARSER_MODEL, Date.now() - parserStarted, "invalid_output");
+      logStageError(requestId, stageError);
+      if (stageError.reason === "rate_limited") return error("The comparison engine is busy. Please try again shortly.", requestId, 429);
+      return error("The measurement reader is unavailable. Please try again.", requestId, 502);
+    }
+    if (!parsed.recognized) return error("I couldn't recognise that measurement yet. Try a number and unit, such as 144 J.", requestId, 422);
 
-  let validated;
-  try {
-    validated = validateMeasurement(parsed.quantity, parsed.sourceUnit);
-  } catch {
-    console.error(JSON.stringify({ requestId, stage: "parser", model: PARSER_MODEL, elapsedMs: Date.now() - parserStarted, reason: "invalid_measurement" satisfies Reason }));
-    return error("I couldn't recognise that measurement yet. Try a number and unit, such as 144 J.", requestId, 422);
+    try {
+      validated = validateMeasurement(parsed.quantity, parsed.sourceUnit);
+    } catch {
+      console.error(JSON.stringify({ requestId, stage: "parser", model: PARSER_MODEL, elapsedMs: Date.now() - parserStarted, reason: "invalid_measurement" satisfies Reason }));
+      return error("I couldn't recognise that measurement yet. Try a number and unit, such as 144 J.", requestId, 422);
+    }
   }
 
   const seed = crypto.getRandomValues(new Uint32Array(1))[0];
-  const offered = comparisonMenu(validated, recentFamilies, seed);
+  const offered = tokenUsage ? tokenComparisonMenu(tokenUsage, recentFamilies, seed) : comparisonMenu(validated!, recentFamilies, seed);
+  const resultFor = (packet: ComparisonPacket) => tokenUsage ? tokenComparisonResult(packet, tokenUsage, recentFamilies) : comparisonResult(packet, validated!, recentFamilies);
   if (!offered.length) return error("I don't have a useful comparison at that scale yet. Try another measurement.", requestId, 422);
+
+  if (tokenUsage && offered.length === 1) return json({ result: resultFor(offered[0]) });
 
   const creativeStarted = Date.now();
   try {
     const response = await runStage(env, "creative", CREATIVE_MODEL, selectorPrompt, selectionInput(measurement, offered), 0.2, 256, 5_000, selectionSchema(offered));
     const selected = selectedComparison(rawResponse(response), offered);
     if (!selected) throw new StageError("creative", CREATIVE_MODEL, Date.now() - creativeStarted, "invalid_output");
-    return json({ result: comparisonResult(selected, validated, recentFamilies) });
+    return json({ result: resultFor(selected) });
   } catch (cause) {
     const stageError = cause instanceof StageError ? cause : new StageError("creative", CREATIVE_MODEL, Date.now() - creativeStarted, "invalid_output");
     logStageError(requestId, stageError);
     // An eligible deterministic result remains useful even when the model budget is exhausted.
-    return json({ result: comparisonResult(offered[0], validated, recentFamilies) });
+    return json({ result: resultFor(offered[0]) });
   }
 }
 
