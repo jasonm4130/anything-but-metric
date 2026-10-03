@@ -456,10 +456,13 @@ async function main() {
     }
     case 'resend': {
       assertLiveAllowed(options);
-      const record = (await readRecords(options.run)).find(entry => entry.seq === Number(options.seq));
+      const records = await readRecords(options.run);
+      const record = records.find(entry => entry.seq === Number(options.seq));
       if (!record) throw new Error(`No record ${options.seq} in run ${options.run}`);
-      const { max_tokens: _maxTokens, reasoning_effort: _effort, ...request } = record.request;
-      await execute(E, [{ suite: record.suite, caseId: record.caseId, condition: `resend-of-${record.seq}`, model: options.model ?? record.model, request, ...(record.measurement ? { measurement: record.measurement } : {}), ...(record.gold ? { gold: record.gold } : {}), ...(record.bands ? { bands: record.bands } : {}), ...(record.targets ? { targets: record.targets } : {}) }], options);
+      const model = options.model ?? record.model;
+      const request = Object.fromEntries(Object.entries(record.request).filter(([key]) => key !== 'max_tokens' && !(key in (models[record.model]?.extra ?? {}))));
+      const prior = records.filter(entry => entry.model === model && entry.condition.startsWith(`resend-of-${record.seq}#`)).length;
+      await execute(E, [{ suite: record.suite, caseId: record.caseId, condition: `resend-of-${record.seq}#${prior + 1}`, model, request, ...(record.measurement ? { measurement: record.measurement } : {}), ...(record.gold ? { gold: record.gold } : {}), ...(record.bands ? { bands: record.bands } : {}), ...(record.targets ? { targets: record.targets } : {}) }], options);
       break;
     }
     case 'replay': {
