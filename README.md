@@ -63,7 +63,7 @@ The current baseline is **285 tests and 30 development acceptance cases passing*
 
 ## Deploy your own
 
-Follow the [Cloudflare deployment guide](docs/deployment.md). It covers the Worker, custom domain, authenticated AI Gateway, spend limits, Turnstile and 1Password-backed configuration. The production site's infrastructure is managed separately in Terraform.
+Follow the [Cloudflare deployment guide](docs/deployment.md). It covers the Worker, custom domain, authenticated AI Gateway, spend limits, Turnstile and 1Password-backed configuration. The production AI Gateway is managed by the OpenTofu stack in [`infra/`](infra/README.md); other account infrastructure is managed separately.
 
 `.env.op.example` contains placeholders only. Keep your own `.env.op` local; it is ignored by Git. CI neither receives deployment credentials nor calls a paid model.
 

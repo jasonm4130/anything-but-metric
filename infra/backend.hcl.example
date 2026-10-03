@@ -1,0 +1,8 @@
+# Copy outside the repository and substitute only through 1Password/process env.
+# The endpoint is account-specific; do not commit credentials or a generated file.
+# The dedicated anything-but-metric state bucket, or the shared bucket only if the
+# scoped state credential is limited to the anything-but-metric/ prefix.
+bucket = "YOUR_STATE_BUCKET"
+endpoints = {
+  s3 = "https://YOUR_ACCOUNT_ID.r2.cloudflarestorage.com"
+}

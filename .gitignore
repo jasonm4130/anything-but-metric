@@ -10,3 +10,8 @@ dist/
 coverage/
 .DS_Store
 evals/results/
+infra/.terraform/
+infra/*.tfstate
+infra/*.tfstate.*
+infra/*.tfplan
+infra/backend.hcl
