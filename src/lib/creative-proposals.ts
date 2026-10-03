@@ -152,7 +152,9 @@ export function checkProposal(raw: unknown, index: number, measurement: { quanti
   const label = typeof proposal.label === "string" ? proposal.label : "";
   const singular = typeof proposal.singular === "string" ? proposal.singular : "";
   if ([label, singular, proposal.basis].some(looksLikeRefusal)) reasons.push("refusal_text");
-  reasons.push(...lineGateReasons(proposal.line, label, singular).filter(reason => !reasons.includes(reason)));
+  // Some models write "{label}" or "{singular}" into the line as a second placeholder; fill those from the proposal.
+  const line = typeof proposal.line === "string" ? proposal.line.replaceAll("{label}", label).replaceAll("{singular}", singular) : proposal.line;
+  reasons.push(...lineGateReasons(line, label, singular).filter(reason => !reasons.includes(reason)));
   let count: number | undefined;
   if (!reasons.includes("invalid_value") && !reasons.includes("invalid_unit")) {
     const source = parsedUnit(measurement.quantity, measurement.sourceUnit);
@@ -177,7 +179,7 @@ export function checkProposal(raw: unknown, index: number, measurement: { quanti
   }
   if (reasons.length) return { index, ok: false, reasons, ...(count === undefined ? {} : { count }) };
   const displayCount = formatNumber(count as number);
-  return { index, ok: true, reasons, count, displayCount, text: (proposal.line as string).replace(countPlaceholder, displayCount), family: (proposal.family as string).trim().toLocaleLowerCase() };
+  return { index, ok: true, reasons, count, displayCount, text: (line as string).replace(countPlaceholder, displayCount), family: (proposal.family as string).trim().toLocaleLowerCase() };
 }
 
 export type CreativeOutcome = "ok" | "no_valid_proposal" | "refusal" | "schema_error" | "unparseable";

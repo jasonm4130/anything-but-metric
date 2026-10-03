@@ -22,6 +22,7 @@ describe("creative proposals", () => {
     expect(check.text).toBe("That's 3.33 double-decker buses parked nose to tail.");
     expect(checkProposal({ ...bus, unit: "µg", value: 5e12 }, 0, { quantity: 40, sourceUnit: "tonne" }).ok).toBe(true);
     expect(proposalUnit("microns")).toBe("um");
+    expect(checkProposal({ ...bus, line: "{N} {label} queue at the stop." }, 0, { quantity: 40, sourceUnit: "tonne" }).text).toBe("3.33 double-decker buses queue at the stop.");
     expect(checkProposal({ ...bus, unit: "m" }, 0, { quantity: 40, sourceUnit: "tonne" }).reasons).toContain("dimension_mismatch");
     expect(checkProposal({ ...bus, value: 1e-6 }, 0, { quantity: 40, sourceUnit: "tonne" }).reasons).toContain("ratio_out_of_range");
     expect(checkProposal({ ...bus, value: 0 }, 0, { quantity: 40, sourceUnit: "tonne" }).reasons).toContain("invalid_value");
