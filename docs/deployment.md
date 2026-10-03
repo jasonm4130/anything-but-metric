@@ -1,6 +1,6 @@
 # Deploy to Cloudflare
 
-This guide is for a maintainer deploying an existing configured instance or a contributor creating a separate instance. The repository contains the Worker and static assets. Account infrastructure, gateway spend controls and the Turnstile widget are configured separately.
+This guide is for a maintainer deploying an existing configured instance or a contributor creating a separate instance. The repository contains the Worker, static assets and an OpenTofu stack for the production AI Gateway. Other account infrastructure and the Turnstile widget are configured separately.
 
 ## Configure a separate instance
 
@@ -16,7 +16,33 @@ Update these instance-specific settings before deployment:
 | `src/pages/index.astro` | Skopia site identifier, or remove the analytics integration |
 | `.env.op` | Your account, deployment token and widget references |
 
-The production gateway uses 30 requests per minute, US$1 over a rolling day and US$5 over thirty rolling days. Set your own [gateway spend limits](https://developers.cloudflare.com/ai-gateway/features/spend-limits/) before accepting public traffic. Gateway accounting is eventually consistent; these controls are not exact billing ceilings. The repository does not automatically provision or raise those limits.
+The production gateway uses 30 requests per minute, US$1 over a rolling day and US$5 over thirty rolling days. Set your own [gateway spend limits](https://developers.cloudflare.com/ai-gateway/features/spend-limits/) before accepting public traffic. Gateway accounting is eventually consistent; these controls are not exact billing ceilings. For the production gateway they are set in [`infra/`](#manage-the-production-gateway); no deployment command raises them.
+
+## Manage the production gateway
+
+The `infra/` OpenTofu stack owns the `anything-but-metric` gateway, its spend and rate limits, and its OpenRouter hookup. OpenRouter's key is stored in the gateway, so requests send only the gateway token. See [`infra/README.md`](../infra/README.md) for resources, credentials and the first-apply gate.
+
+Before the first apply, the account's token stack must have issued the Anything But Metric deploy token, and the account's root Terraform state must have released the gateway without destroying it. Never apply while both states own the gateway.
+
+```sh
+cd infra
+cp .env.op.example .env.op            # then set your 1Password references
+op run --env-file=.env.op -- tofu init -input=false -lockfile=readonly -backend-config=backend.hcl
+op run --env-file=.env.op -- tofu plan -input=false -out=gateway.tfplan
+op run --env-file=.env.op -- tofu apply gateway.tfplan
+```
+
+Review the saved plan before applying it. The first plan imports the gateway with no changes to it and creates only the OpenRouter custom provider, secrets and provider keys.
+
+The Worker reaches models through gateway ID `anything-but-metric`:
+
+| Use | Route |
+| --- | --- |
+| Workers AI | The `AI` binding with `gateway: { id: "anything-but-metric" }` |
+| Jev decisions | `https://gateway.ai.cloudflare.com/v1/{account_id}/anything-but-metric/custom-openrouter-api/api/alpha/decisions` |
+| OpenRouter chat | `https://gateway.ai.cloudflare.com/v1/{account_id}/anything-but-metric/openrouter/chat/completions` |
+
+The current Worker calls only Workers AI. Applying the stack does not deploy the Worker.
 
 ## Load configuration
 

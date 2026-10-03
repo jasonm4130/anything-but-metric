@@ -54,7 +54,7 @@ Llama 3.2 3B is the current selector because small development comparisons made 
 
 Astro produces static assets. One Cloudflare Worker serves `/api/convert` and the assets. The AI binding calls an authenticated AI Gateway with caching bypassed. Server-side Turnstile validation checks the expected hostname and action. The Worker applies a 10-request-per-minute client limit, 8 KiB body limit, 500-character measurement limit and 20 ms CPU limit.
 
-The production gateway is configured separately with spend controls. Skopia receives visit analytics and successful conversion events containing only the dimension. There is no application database. Provider infrastructure and access logging have their own behavior; dimension-only product analytics is not a claim that submitted measurements never reach a provider.
+The production gateway and its spend controls are managed by the OpenTofu stack in [`infra/`](../infra/README.md). Skopia receives visit analytics and successful conversion events containing only the dimension. There is no application database. Provider infrastructure and access logging have their own behavior; dimension-only product analytics is not a claim that submitted measurements never reach a provider.
 
 ## Where to look
 
