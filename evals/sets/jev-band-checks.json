@@ -1,0 +1,854 @@
+{
+  "schemaVersion": 1,
+  "frozenAt": "2026-10-03",
+  "purpose": "Calibration set for the Jev value check: each sourced entity appears at its true value and at one corrupted value (factor cycles through 0.01, 0.1, 0.3, 3, 10, 100). `position` places the proposed value among seven half-decade bands.",
+  "derivedFrom": "evals/sets/estimate-entities.json",
+  "checks": [
+    {
+      "id": "length-red-blood-cell--true",
+      "entityId": "length-red-blood-cell",
+      "kind": "true",
+      "factor": 1,
+      "value": 0.0000075,
+      "unit": "m",
+      "position": 5
+    },
+    {
+      "id": "length-red-blood-cell--corrupted",
+      "entityId": "length-red-blood-cell",
+      "kind": "corrupted",
+      "factor": 0.01,
+      "value": 7.500000000000001e-8,
+      "unit": "m",
+      "position": 4
+    },
+    {
+      "id": "length-fifa-pitch--true",
+      "entityId": "length-fifa-pitch",
+      "kind": "true",
+      "factor": 1,
+      "value": 105,
+      "unit": "m",
+      "position": 4
+    },
+    {
+      "id": "length-fifa-pitch--corrupted",
+      "entityId": "length-fifa-pitch",
+      "kind": "corrupted",
+      "factor": 0.1,
+      "value": 10.5,
+      "unit": "m",
+      "position": 4
+    },
+    {
+      "id": "length-earth-diameter--true",
+      "entityId": "length-earth-diameter",
+      "kind": "true",
+      "factor": 1,
+      "value": 12756000,
+      "unit": "m",
+      "position": 5
+    },
+    {
+      "id": "length-earth-diameter--corrupted",
+      "entityId": "length-earth-diameter",
+      "kind": "corrupted",
+      "factor": 0.3,
+      "value": 3826800,
+      "unit": "m",
+      "position": 0
+    },
+    {
+      "id": "mass-iss--true",
+      "entityId": "mass-iss",
+      "kind": "true",
+      "factor": 1,
+      "value": 420000,
+      "unit": "kg",
+      "position": 4
+    },
+    {
+      "id": "mass-iss--corrupted",
+      "entityId": "mass-iss",
+      "kind": "corrupted",
+      "factor": 3,
+      "value": 1260000,
+      "unit": "kg",
+      "position": 4
+    },
+    {
+      "id": "mass-earth--true",
+      "entityId": "mass-earth",
+      "kind": "true",
+      "factor": 1,
+      "value": 5.97219e+24,
+      "unit": "kg",
+      "position": 1
+    },
+    {
+      "id": "mass-earth--corrupted",
+      "entityId": "mass-earth",
+      "kind": "corrupted",
+      "factor": 10,
+      "value": 5.972190000000001e+25,
+      "unit": "kg",
+      "position": 2
+    },
+    {
+      "id": "energy-hoover-hour--true",
+      "entityId": "energy-hoover-hour",
+      "kind": "true",
+      "factor": 1,
+      "value": 7488000000000,
+      "unit": "J",
+      "position": 6
+    },
+    {
+      "id": "energy-hoover-hour--corrupted",
+      "entityId": "energy-hoover-hour",
+      "kind": "corrupted",
+      "factor": 100,
+      "value": 748800000000000,
+      "unit": "J",
+      "position": 6
+    },
+    {
+      "id": "area-fifa-pitch--true",
+      "entityId": "area-fifa-pitch",
+      "kind": "true",
+      "factor": 1,
+      "value": 7140,
+      "unit": "m^2",
+      "position": 4
+    },
+    {
+      "id": "area-fifa-pitch--corrupted",
+      "entityId": "area-fifa-pitch",
+      "kind": "corrupted",
+      "factor": 0.01,
+      "value": 71.4,
+      "unit": "m^2",
+      "position": 3
+    },
+    {
+      "id": "area-fiba-court--true",
+      "entityId": "area-fiba-court",
+      "kind": "true",
+      "factor": 1,
+      "value": 420,
+      "unit": "m^2",
+      "position": 2
+    },
+    {
+      "id": "area-fiba-court--corrupted",
+      "entityId": "area-fiba-court",
+      "kind": "corrupted",
+      "factor": 0.1,
+      "value": 42,
+      "unit": "m^2",
+      "position": 0
+    },
+    {
+      "id": "area-earth-surface--true",
+      "entityId": "area-earth-surface",
+      "kind": "true",
+      "factor": 1,
+      "value": 510064472000000,
+      "unit": "m^2",
+      "position": 3
+    },
+    {
+      "id": "area-earth-surface--corrupted",
+      "entityId": "area-earth-surface",
+      "kind": "corrupted",
+      "factor": 0.3,
+      "value": 153019341600000,
+      "unit": "m^2",
+      "position": 3
+    },
+    {
+      "id": "area-brunei--true",
+      "entityId": "area-brunei",
+      "kind": "true",
+      "factor": 1,
+      "value": 5765000000,
+      "unit": "m^2",
+      "position": 3
+    },
+    {
+      "id": "area-brunei--corrupted",
+      "entityId": "area-brunei",
+      "kind": "corrupted",
+      "factor": 3,
+      "value": 17295000000,
+      "unit": "m^2",
+      "position": 0
+    },
+    {
+      "id": "data-bluray-single--true",
+      "entityId": "data-bluray-single",
+      "kind": "true",
+      "factor": 1,
+      "value": 25,
+      "unit": "GB",
+      "position": 2
+    },
+    {
+      "id": "data-bluray-single--corrupted",
+      "entityId": "data-bluray-single",
+      "kind": "corrupted",
+      "factor": 10,
+      "value": 250,
+      "unit": "GB",
+      "position": 1
+    },
+    {
+      "id": "time-soccer-half--true",
+      "entityId": "time-soccer-half",
+      "kind": "true",
+      "factor": 1,
+      "value": 2700,
+      "unit": "s",
+      "position": 0
+    },
+    {
+      "id": "time-soccer-half--corrupted",
+      "entityId": "time-soccer-half",
+      "kind": "corrupted",
+      "factor": 100,
+      "value": 270000,
+      "unit": "s",
+      "position": 2
+    },
+    {
+      "id": "time-iss-orbit--true",
+      "entityId": "time-iss-orbit",
+      "kind": "true",
+      "factor": 1,
+      "value": 5400,
+      "unit": "s",
+      "position": 1
+    },
+    {
+      "id": "time-iss-orbit--corrupted",
+      "entityId": "time-iss-orbit",
+      "kind": "corrupted",
+      "factor": 0.01,
+      "value": 54,
+      "unit": "s",
+      "position": 6
+    },
+    {
+      "id": "time-solar-day--true",
+      "entityId": "time-solar-day",
+      "kind": "true",
+      "factor": 1,
+      "value": 86400,
+      "unit": "s",
+      "position": 6
+    },
+    {
+      "id": "time-solar-day--corrupted",
+      "entityId": "time-solar-day",
+      "kind": "corrupted",
+      "factor": 0.1,
+      "value": 8640,
+      "unit": "s",
+      "position": 5
+    },
+    {
+      "id": "time-twentieth-century--true",
+      "entityId": "time-twentieth-century",
+      "kind": "true",
+      "factor": 1,
+      "value": 3155760000,
+      "unit": "s",
+      "position": 2
+    },
+    {
+      "id": "time-twentieth-century--corrupted",
+      "entityId": "time-twentieth-century",
+      "kind": "corrupted",
+      "factor": 0.3,
+      "value": 946728000,
+      "unit": "s",
+      "position": 0
+    },
+    {
+      "id": "power-hoover--true",
+      "entityId": "power-hoover",
+      "kind": "true",
+      "factor": 1,
+      "value": 2080000000,
+      "unit": "W",
+      "position": 4
+    },
+    {
+      "id": "power-hoover--corrupted",
+      "entityId": "power-hoover",
+      "kind": "corrupted",
+      "factor": 3,
+      "value": 6240000000,
+      "unit": "W",
+      "position": 1
+    },
+    {
+      "id": "pressure-standard-atmosphere--true",
+      "entityId": "pressure-standard-atmosphere",
+      "kind": "true",
+      "factor": 1,
+      "value": 101325,
+      "unit": "Pa",
+      "position": 4
+    },
+    {
+      "id": "pressure-standard-atmosphere--corrupted",
+      "entityId": "pressure-standard-atmosphere",
+      "kind": "corrupted",
+      "factor": 10,
+      "value": 1013250,
+      "unit": "Pa",
+      "position": 1
+    },
+    {
+      "id": "speed-iss--true",
+      "entityId": "speed-iss",
+      "kind": "true",
+      "factor": 1,
+      "value": 7777.777778,
+      "unit": "m/s",
+      "position": 0
+    },
+    {
+      "id": "speed-iss--corrupted",
+      "entityId": "speed-iss",
+      "kind": "corrupted",
+      "factor": 100,
+      "value": 777777.7777999999,
+      "unit": "m/s",
+      "position": 4
+    },
+    {
+      "id": "speed-bolt-100m--true",
+      "entityId": "speed-bolt-100m",
+      "kind": "true",
+      "factor": 1,
+      "value": 10.438413361,
+      "unit": "m/s",
+      "position": 4
+    },
+    {
+      "id": "speed-bolt-100m--corrupted",
+      "entityId": "speed-bolt-100m",
+      "kind": "corrupted",
+      "factor": 0.01,
+      "value": 0.10438413361,
+      "unit": "m/s",
+      "position": 6
+    },
+    {
+      "id": "speed-light-vacuum--true",
+      "entityId": "speed-light-vacuum",
+      "kind": "true",
+      "factor": 1,
+      "value": 299792458,
+      "unit": "m/s",
+      "position": 4
+    },
+    {
+      "id": "speed-light-vacuum--corrupted",
+      "entityId": "speed-light-vacuum",
+      "kind": "corrupted",
+      "factor": 0.1,
+      "value": 29979245.8,
+      "unit": "m/s",
+      "position": 3
+    },
+    {
+      "id": "force-iss-earth-weight--true",
+      "entityId": "force-iss-earth-weight",
+      "kind": "true",
+      "factor": 1,
+      "value": 4118793,
+      "unit": "N",
+      "position": 1
+    },
+    {
+      "id": "force-iss-earth-weight--corrupted",
+      "entityId": "force-iss-earth-weight",
+      "kind": "corrupted",
+      "factor": 0.3,
+      "value": 1235637.9,
+      "unit": "N",
+      "position": 3
+    },
+    {
+      "id": "force-earth-moon-gravity--true",
+      "entityId": "force-earth-moon-gravity",
+      "kind": "true",
+      "factor": 1,
+      "value": 198000000000000000000,
+      "unit": "N",
+      "position": 5
+    },
+    {
+      "id": "force-earth-moon-gravity--corrupted",
+      "entityId": "force-earth-moon-gravity",
+      "kind": "corrupted",
+      "factor": 3,
+      "value": 594000000000000000000,
+      "unit": "N",
+      "position": 2
+    },
+    {
+      "id": "frequency-australian-grid--true",
+      "entityId": "frequency-australian-grid",
+      "kind": "true",
+      "factor": 1,
+      "value": 50,
+      "unit": "Hz",
+      "position": 0
+    },
+    {
+      "id": "frequency-australian-grid--corrupted",
+      "entityId": "frequency-australian-grid",
+      "kind": "corrupted",
+      "factor": 10,
+      "value": 500,
+      "unit": "Hz",
+      "position": 2
+    },
+    {
+      "id": "frequency-tuning-fork--true",
+      "entityId": "frequency-tuning-fork",
+      "kind": "true",
+      "factor": 1,
+      "value": 440,
+      "unit": "Hz",
+      "position": 5
+    },
+    {
+      "id": "frequency-tuning-fork--corrupted",
+      "entityId": "frequency-tuning-fork",
+      "kind": "corrupted",
+      "factor": 100,
+      "value": 44000,
+      "unit": "Hz",
+      "position": 2
+    },
+    {
+      "id": "volume-iss-habitable--true",
+      "entityId": "volume-iss-habitable",
+      "kind": "true",
+      "factor": 1,
+      "value": 388,
+      "unit": "m^3",
+      "position": 6
+    },
+    {
+      "id": "volume-iss-habitable--corrupted",
+      "entityId": "volume-iss-habitable",
+      "kind": "corrupted",
+      "factor": 0.01,
+      "value": 3.88,
+      "unit": "m^3",
+      "position": 2
+    },
+    {
+      "id": "volume-lake-superior--true",
+      "entityId": "volume-lake-superior",
+      "kind": "true",
+      "factor": 1,
+      "value": 12100000000000,
+      "unit": "m^3",
+      "position": 4
+    },
+    {
+      "id": "volume-lake-superior--corrupted",
+      "entityId": "volume-lake-superior",
+      "kind": "corrupted",
+      "factor": 0.1,
+      "value": 1210000000000,
+      "unit": "m^3",
+      "position": 3
+    },
+    {
+      "id": "mass-us-zinc-penny--true",
+      "entityId": "mass-us-zinc-penny",
+      "kind": "true",
+      "factor": 1,
+      "value": 0.0025,
+      "unit": "kg",
+      "position": 5
+    },
+    {
+      "id": "mass-us-zinc-penny--corrupted",
+      "entityId": "mass-us-zinc-penny",
+      "kind": "corrupted",
+      "factor": 0.3,
+      "value": 0.00075,
+      "unit": "kg",
+      "position": 1
+    },
+    {
+      "id": "power-breville-smart-kettle--true",
+      "entityId": "power-breville-smart-kettle",
+      "kind": "true",
+      "factor": 1,
+      "value": 2400,
+      "unit": "W",
+      "position": 3
+    },
+    {
+      "id": "power-breville-smart-kettle--corrupted",
+      "entityId": "power-breville-smart-kettle",
+      "kind": "corrupted",
+      "factor": 3,
+      "value": 7200,
+      "unit": "W",
+      "position": 1
+    },
+    {
+      "id": "power-dyson-supersonic--true",
+      "entityId": "power-dyson-supersonic",
+      "kind": "true",
+      "factor": 1,
+      "value": 1600,
+      "unit": "W",
+      "position": 0
+    },
+    {
+      "id": "power-dyson-supersonic--corrupted",
+      "entityId": "power-dyson-supersonic",
+      "kind": "corrupted",
+      "factor": 10,
+      "value": 16000,
+      "unit": "W",
+      "position": 2
+    },
+    {
+      "id": "power-vectron-ms-rtc--true",
+      "entityId": "power-vectron-ms-rtc",
+      "kind": "true",
+      "factor": 1,
+      "value": 6400000,
+      "unit": "W",
+      "position": 1
+    },
+    {
+      "id": "power-vectron-ms-rtc--corrupted",
+      "entityId": "power-vectron-ms-rtc",
+      "kind": "corrupted",
+      "factor": 100,
+      "value": 640000000,
+      "unit": "W",
+      "position": 3
+    },
+    {
+      "id": "length-dippy-replica--true",
+      "entityId": "length-dippy-replica",
+      "kind": "true",
+      "factor": 1,
+      "value": 26,
+      "unit": "m",
+      "position": 2
+    },
+    {
+      "id": "length-dippy-replica--corrupted",
+      "entityId": "length-dippy-replica",
+      "kind": "corrupted",
+      "factor": 0.01,
+      "value": 0.26,
+      "unit": "m",
+      "position": 5
+    },
+    {
+      "id": "length-eiffel-current-height--true",
+      "entityId": "length-eiffel-current-height",
+      "kind": "true",
+      "factor": 1,
+      "value": 330,
+      "unit": "m",
+      "position": 5
+    },
+    {
+      "id": "length-eiffel-current-height--corrupted",
+      "entityId": "length-eiffel-current-height",
+      "kind": "corrupted",
+      "factor": 0.1,
+      "value": 33,
+      "unit": "m",
+      "position": 1
+    },
+    {
+      "id": "area-doubles-tennis-court--true",
+      "entityId": "area-doubles-tennis-court",
+      "kind": "true",
+      "factor": 1,
+      "value": 260.87173632,
+      "unit": "m^2",
+      "position": 2
+    },
+    {
+      "id": "area-doubles-tennis-court--corrupted",
+      "entityId": "area-doubles-tennis-court",
+      "kind": "corrupted",
+      "factor": 0.3,
+      "value": 78.26152089600001,
+      "unit": "m^2",
+      "position": 4
+    },
+    {
+      "id": "length-jupiter-diameter--true",
+      "entityId": "length-jupiter-diameter",
+      "kind": "true",
+      "factor": 1,
+      "value": 142984000,
+      "unit": "m",
+      "position": 0
+    },
+    {
+      "id": "length-jupiter-diameter--corrupted",
+      "entityId": "length-jupiter-diameter",
+      "kind": "corrupted",
+      "factor": 3,
+      "value": 428952000,
+      "unit": "m",
+      "position": 0
+    },
+    {
+      "id": "length-neptune-sun-distance--true",
+      "entityId": "length-neptune-sun-distance",
+      "kind": "true",
+      "factor": 1,
+      "value": 4500000000000,
+      "unit": "m",
+      "position": 0
+    },
+    {
+      "id": "length-neptune-sun-distance--corrupted",
+      "entityId": "length-neptune-sun-distance",
+      "kind": "corrupted",
+      "factor": 10,
+      "value": 45000000000000,
+      "unit": "m",
+      "position": 3
+    },
+    {
+      "id": "time-jupiter-orbit--true",
+      "entityId": "time-jupiter-orbit",
+      "kind": "true",
+      "factor": 1,
+      "value": 375535440,
+      "unit": "s",
+      "position": 5
+    },
+    {
+      "id": "time-jupiter-orbit--corrupted",
+      "entityId": "time-jupiter-orbit",
+      "kind": "corrupted",
+      "factor": 100,
+      "value": 37553544000,
+      "unit": "s",
+      "position": 4
+    },
+    {
+      "id": "time-neptune-light--true",
+      "entityId": "time-neptune-light",
+      "kind": "true",
+      "factor": 1,
+      "value": 15120,
+      "unit": "s",
+      "position": 6
+    },
+    {
+      "id": "time-neptune-light--corrupted",
+      "entityId": "time-neptune-light",
+      "kind": "corrupted",
+      "factor": 0.01,
+      "value": 151.20000000000002,
+      "unit": "s",
+      "position": 0
+    },
+    {
+      "id": "length-volleyball-court--true",
+      "entityId": "length-volleyball-court",
+      "kind": "true",
+      "factor": 1,
+      "value": 18,
+      "unit": "m",
+      "position": 0
+    },
+    {
+      "id": "length-volleyball-court--corrupted",
+      "entityId": "length-volleyball-court",
+      "kind": "corrupted",
+      "factor": 0.1,
+      "value": 1.8,
+      "unit": "m",
+      "position": 1
+    },
+    {
+      "id": "area-volleyball-court--true",
+      "entityId": "area-volleyball-court",
+      "kind": "true",
+      "factor": 1,
+      "value": 162,
+      "unit": "m^2",
+      "position": 4
+    },
+    {
+      "id": "area-volleyball-court--corrupted",
+      "entityId": "area-volleyball-court",
+      "kind": "corrupted",
+      "factor": 0.3,
+      "value": 48.6,
+      "unit": "m^2",
+      "position": 6
+    },
+    {
+      "id": "length-lego-eiffel--true",
+      "entityId": "length-lego-eiffel",
+      "kind": "true",
+      "factor": 1,
+      "value": 1.49,
+      "unit": "m",
+      "position": 0
+    },
+    {
+      "id": "length-lego-eiffel--corrupted",
+      "entityId": "length-lego-eiffel",
+      "kind": "corrupted",
+      "factor": 3,
+      "value": 4.47,
+      "unit": "m",
+      "position": 0
+    },
+    {
+      "id": "mass-jupiter--true",
+      "entityId": "mass-jupiter",
+      "kind": "true",
+      "factor": 1,
+      "value": 1.8979619820000002e+27,
+      "unit": "kg",
+      "position": 5
+    },
+    {
+      "id": "mass-jupiter--corrupted",
+      "entityId": "mass-jupiter",
+      "kind": "corrupted",
+      "factor": 10,
+      "value": 1.8979619820000002e+28,
+      "unit": "kg",
+      "position": 2
+    },
+    {
+      "id": "area-cricket-pitch--true",
+      "entityId": "area-cricket-pitch",
+      "kind": "true",
+      "factor": 1,
+      "value": 61.3160064,
+      "unit": "m^2",
+      "position": 1
+    },
+    {
+      "id": "area-cricket-pitch--corrupted",
+      "entityId": "area-cricket-pitch",
+      "kind": "corrupted",
+      "factor": 100,
+      "value": 6131.60064,
+      "unit": "m^2",
+      "position": 1
+    },
+    {
+      "id": "angle-uci-track-bend--true",
+      "entityId": "angle-uci-track-bend",
+      "kind": "true",
+      "factor": 1,
+      "value": 45,
+      "unit": "deg",
+      "position": 5
+    },
+    {
+      "id": "angle-uci-track-bend--corrupted",
+      "entityId": "angle-uci-track-bend",
+      "kind": "corrupted",
+      "factor": 0.01,
+      "value": 0.45,
+      "unit": "deg",
+      "position": 5
+    },
+    {
+      "id": "length-uk-driving-eyesight--true",
+      "entityId": "length-uk-driving-eyesight",
+      "kind": "true",
+      "factor": 1,
+      "value": 20,
+      "unit": "m",
+      "position": 5
+    },
+    {
+      "id": "length-uk-driving-eyesight--corrupted",
+      "entityId": "length-uk-driving-eyesight",
+      "kind": "corrupted",
+      "factor": 0.1,
+      "value": 2,
+      "unit": "m",
+      "position": 0
+    },
+    {
+      "id": "length-yosemite-falls--true",
+      "entityId": "length-yosemite-falls",
+      "kind": "true",
+      "factor": 1,
+      "value": 739,
+      "unit": "m",
+      "position": 1
+    },
+    {
+      "id": "length-yosemite-falls--corrupted",
+      "entityId": "length-yosemite-falls",
+      "kind": "corrupted",
+      "factor": 0.3,
+      "value": 221.7,
+      "unit": "m",
+      "position": 1
+    },
+    {
+      "id": "length-giraffe-specimen--true",
+      "entityId": "length-giraffe-specimen",
+      "kind": "true",
+      "factor": 1,
+      "value": 4.35,
+      "unit": "m",
+      "position": 1
+    },
+    {
+      "id": "length-giraffe-specimen--corrupted",
+      "entityId": "length-giraffe-specimen",
+      "kind": "corrupted",
+      "factor": 3,
+      "value": 13.049999999999999,
+      "unit": "m",
+      "position": 6
+    },
+    {
+      "id": "length-mouse-body--true",
+      "entityId": "length-mouse-body",
+      "kind": "true",
+      "factor": 1,
+      "value": 0.1,
+      "unit": "m",
+      "position": 1
+    },
+    {
+      "id": "length-mouse-body--corrupted",
+      "entityId": "length-mouse-body",
+      "kind": "corrupted",
+      "factor": 10,
+      "value": 1,
+      "unit": "m",
+      "position": 5
+    }
+  ]
+}

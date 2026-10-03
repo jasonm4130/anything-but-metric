@@ -10,7 +10,9 @@
     "test": "vitest run",
     "deploy": "node scripts/deploy.mjs",
     "dry-run": "npm run build && wrangler deploy --dry-run",
-    "eval:corpus": "node scripts/check-comparison-corpus.mjs",
+    "eval:corpus": "node scripts/check-comparison-corpus.mjs && node scripts/eval-offline-sweeps.mjs",
+    "eval:sweeps": "node scripts/eval-offline-sweeps.mjs",
+    "eval:live": "node scripts/live-eval.mjs",
     "secrets:sync": "node scripts/configure-secrets.mjs"
   },
   "devDependencies": {
