@@ -65,6 +65,41 @@ Suites: `creative` (proposals for a measurement window and theme), `refusal` (ed
 
 **Replay log.** Every call appends one `abm-live-eval.v1` record to `evals/results/live/<run>/records.jsonl`: the exact request body, the raw response, the refusal or failure reason (`timeout`, `json_mode_error`, `rate_limited`, `spend_limited`, `refusal`, `transport_error`), latency, token usage, cost, gateway log id and the score. Judge verdicts are records too. `manifest.json` stores the git commit, prompt and set hashes, prices and budgets. These files stay out of Git; publish only aggregate results such as the table below.
 
+### Workers AI bake-off, 3 October 2026
+
+Run `bakeoff-2026-10-03`: 845 calls through `anything-but-metric-research` for US$0.255. The gateway's own analytics matched the harness's per-call cost. Prompt `creative-proposals.v1`. Thinking was disabled for Qwen3, GLM 4.7 Flash and Gemma 4; GLM 5.3 Flash and gpt-oss ran at `reasoning_effort: low` (GLM 5.3 cannot disable reasoning).
+
+- **creative:** every third case of `creative-inputs.json`, 20 inputs × 11 models.
+- **estimate:** all 47 entities, five batches per model.
+- **refusal:** every second case of `refusal.json` (40 edgy, 10 controls) with the person's own words passed as context, the riskier condition.
+- **judge:** `gpt-oss-120b` scored each case's lines blind and shuffled; 19 of 20 cases returned a valid verdict.
+
+| Model | Creative answered | Valid proposals | Estimates within ×2 / ×10 | Edgy answered | Judge mean (1–5) | Judged plausible | Best line | Latency p50 / p95 | Cost per creative call |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `glm-5.3-flash` | 100% | 79/80 | 98% / 100% | 98% | **3.23** | 74% | 6 | 7.1 s / 12.6 s | $0.00027 |
+| `gemma-4-26b-a4b-it` | 100% | 79/80 | 96% / 98% | 100% | 2.95 | 68% | 2 | 9.4 s / 11.3 s | $0.00015 |
+| `gpt-oss-120b` | 85% | 66/72 | 94% / 100% | 90% | 2.81 | 56% | 2 | 7.0 s / 21.2 s | $0.00067 |
+| `llama-3.3-70b-instruct-fp8-fast` | 100% | 80/80 | 89% / 94% | 100% | 2.74 | 63% | 3 | 8.3 s / 10.8 s | $0.00070 |
+| `glm-4.7-flash` | 95% | 63/80 | 81% / 92% | 78% | 2.54 | 44% | 2 | 5.9 s / 9.5 s | $0.00015 |
+| `llama-4-scout-17b-16e-instruct` | 95% | 76/80 | 83% / 92% | 100% | 2.54 | 56% | 0 | 5.2 s / 15.4 s | $0.00033 |
+| `qwen3-30b-a3b-fp8` | 75% | 58/80 | 92% / 100% | 83% | 2.50 | 64% | 0 | 2.9 s / 3.9 s | $0.00014 |
+| `gpt-oss-20b` | 100% | 77/80 | 70% / 83% | 95% | 2.49 | 41% | 2 | 62.6 s / 96.6 s | $0.00020 |
+| `mistral-small-3.1-24b-instruct` | 95% | 69/80 | 94% / 100% | 100% | 2.35 | 28% | 1 | 11.2 s / 14.7 s | $0.00032 |
+| `llama-3.1-8b-instruct-fp8-fast` | 95% | 63/79 | 79% / 83% | 93% | 2.28 | 33% | 1 | 2.7 s / 3.9 s | $0.00014 |
+| `llama-3.2-3b-instruct` (today's selector) | 60% | 44/80 | 55% / 70% | 60% | 2.18 | 27% | 0 | 1.8 s / 2.5 s | $0.00012 |
+
+"Answered" means at least one proposal passed every check: a parseable unit of the right dimension, a count between 0.1 and 1,000, and a line with exactly one `{N}`, the reference named and no other numbers. Latency and cost are for the creative call alone.
+
+What the run shows:
+
+- **No refusals.** None of the 440 edgy calls refused, even with the person's own words in the prompt. Edgy inputs were answered 90% of the time against 92% for controls, and the misses were check failures (counts out of range, numbers or missing names in the line), not refusals. Today's refusals come from the parser prompt, which sees raw text; this run did not test that prompt.
+- **GLM 5.3 Flash leads, but not decisively.** Per case it beat Gemma 4 11–6 (2 ties), gpt-oss-120b 9–3 and Llama 3.3 70B 10–5, which is suggestive on 19 cases rather than significant. It beat today's Llama 3.2 3B 10–0. Gemma 4 is the cheaper runner-up.
+- **Latency is the cost of quality.** The two leaders take 7–9 s at the median for the creative call alone. A production design needs a time limit with the catalogue as fallback.
+- **Estimates flatter the models.** The catalogue holds well-known, sourced facts, so a median error of zero often means recall. Small models still miss by orders of magnitude: Lake Superior as 12 km³ instead of about 12,100 km³, light-time to Neptune as 168 hours, a cricket pitch as the whole field. Request-time proposals for unfamiliar things will be harder; Jev's band check exists for this.
+- **Failure modes to handle:** gpt-oss-120b twice returned 2,500 `!` characters at full token cost; gpt-oss-20b ran at about a minute per call; models write units such as `µm`, `microns`, `yr` and `metric tons`, and sometimes a second `{label}` placeholder, which the checks now accept.
+
+Jev was not called: the gateway route to OpenRouter's Decisions API does not exist yet. `jev-bands` and `jev-proposals --from bakeoff-2026-10-03` are ready and stop with `jev_not_configured` at no cost until `JEV_DECISIONS_URL` is set.
+
 ## Reviewing a comparison
 
 Inspect the complete answer and its basis. Ask whether the input quantity is preserved, the dimensions match, the reference has the stated scope, and the formula follows from that evidence. Then judge whether the result is easy to picture. Keep correctness and enjoyment separate: an amusing error fails, and an accurate but cumbersome answer still needs work.
