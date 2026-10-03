@@ -39,7 +39,7 @@ included (`POST .../anything-but-metric/custom-openrouter-api/api/v1/chat/comple
 looks keys up by secret name `{gateway_id}_{provider_slug}_{alias}`, which this stack
 creates before the provider key.
 
-Two details are not yet proven against the live account. The provider slug used for a
+One detail is not yet proven against the live account. The provider slug used for a
 custom provider's stored key is assumed to be `custom-openrouter-api`. Cloudflare's
 docs do not say whether it is that or the bare slug. Check the gateway's **Provider
 Keys** page after apply and send one decision request. If no key is attached, change
