@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "frozenAt": "2026-10-03",
+  "purpose": "Inputs for repeated-session variety: each is answered twelve times with history carried forward.",
+  "sessions": 12,
+  "inputs": ["144 jouls", "2.5 m²", "55 mph", "35 psi", "440 Hz", "-10 °C", "76 kg", "1.83 m", "2 PB", "5 min", "30 kWh", "4 L", "60 W", "10 N", "45 degrees", "5 A", "1 acre", "100 km", "3 g", "1 TW"]
+}

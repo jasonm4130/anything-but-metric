@@ -7,7 +7,9 @@ npm test
 npm run eval:corpus
 ```
 
-The current baseline is 285 passing Worker/library tests and 30 passing development acceptance cases. The corpus sweep reaches 414 distinct recipe IDs across 17 mechanisms. Those IDs are compositions of 109 active reference entries, not 414 independently researched facts.
+The current baseline is 294 passing Worker/library tests and 30 passing development acceptance cases. The corpus sweep reaches 414 distinct recipe IDs across 17 mechanisms. Those IDs are compositions of 109 active reference entries, not 414 independently researched facts.
+
+`eval:corpus` also runs the offline evaluation sweeps (`npm run eval:sweeps` alone). They need no network or credentials and finish in about a second. Paid model evaluation is a separate, opt-in harness described under [Live evaluation](#live-evaluation).
 
 ## What the checks establish
 
@@ -16,6 +18,87 @@ Tests cover arithmetic, physical and temperature boundaries, spelling, fractions
 Prose and instruction-only acceptance cases use explicit parser fixtures. They establish integration behavior, not live model extraction accuracy or universal injection resistance. Repeated-session checks exercise deterministic menu and fallback selection; they do not predict which item the model will prefer. Source links and valid arithmetic do not prove that every source statement has been freshly verified.
 
 Warm Node CPU timings printed by the script are useful for local regression investigation. They exclude Cloudflare cold starts and are not production latency or CPU guarantees.
+
+## Frozen evaluation sets
+
+The sets in `evals/sets/` were frozen on 3 October 2026 for the model-led redesign: a creative model proposes references with estimated values, Jev makes the unit and reference choices and sanity-checks those values, and code keeps only the arithmetic. Change a frozen set only deliberately, and record why.
+
+| Set | Rows | Gold label | Used by |
+| --- | --- | --- | --- |
+| `interpretation.json` | 152 | quantity in a readable unit, alternatives for ambiguous units, a tolerance for named quantities, or `reject` | offline sweep; future Jev unit-choice runs |
+| `refusal.json` | 100 (80 edgy, 20 controls) | the measurement a parser would extract; the person's own words are context | live `refusal` suite; offline path map |
+| `creative-inputs.json` | 60 across 14 dimensions | measurement and theme | live `creative` suite, AI judge, offline window check |
+| `estimate-entities.json` | 47 | sourced catalogue value | live `estimate` suite |
+| `jev-band-checks.json` | 94 | each entity at its true value and one corrupted value (×0.01 to ×100) | live `jev-bands` suite; offline band check |
+| `gate-adversarial.json` | 50 | accept, or the gate reason a rejection must give | offline sweep (CI-blocking) |
+| `variety.json` | 20 inputs × 12 sessions | — | offline sweep |
+
+`estimate-entities.json` and `jev-band-checks.json` are generated from `src/data/` by `node scripts/build-eval-sets.mjs`. Rows whose label states a number ("roughly 35-minute driving portions") are excluded, so the label cannot leak the answer. The offline sweep reports when the catalogue has changed since the set was frozen.
+
+## Offline sweeps
+
+These are hard failures: an arithmetic mismatch, a number-match gate mismatch, a creative size window that could produce a count outside 0.1–1,000, a Jev band question that does not contain its proposed value, a duplicate id or unreadable gold unit, and a live-harness self-check failure. Everything else is a recorded baseline. Baseline on 3 October 2026:
+
+- **Interpretation, local code only:** 79 of 152 correct, 68 would need a model, 5 correct rejections, 0 wrong. The model parser is stubbed to "unrecognised", so this measures what code alone answers today.
+- **Coverage grid** (14 dimensions × integer decades 1e-6 to 1e12): 88 of 266 cells have at least three comparisons, 68 have one or two, 110 are empty.
+- **Arithmetic:** 7,886 packets recomputed from their formula and operands, 0 mismatches, 148 range or printed packets without a single formula.
+- **Variety over 12 sessions:** 12 distinct headlines for `144 jouls`; 1 for `2.5 m²`, `45 degrees` and `1 TW`; none for `5 A`.
+- **Edgy inputs:** of the 80 edgy rows in `refusal.json`, 74 send the person's raw words to the parser model today, 4 reach the selector model and 2 are rejected locally.
+- **Gate:** 50 of 50 adversarial lines handled as expected. **Creative windows:** 60 of 60. **Jev bands:** 94 of 94.
+
+## Live evaluation
+
+`scripts/live-eval.mjs` calls real models and spends money, so it is opt-in and outside the default contribution workflow. It refuses to run without `--live` and refuses whenever `CI` is set. Workers AI calls use the `AI` binding through `wrangler login` and a named AI Gateway (`--gateway`, default `anything-but-metric-research`, an authenticated gateway with its own spend limits). Jev calls need `JEV_DECISIONS_URL` and a gateway token or OpenRouter key; see `.env.op.example`.
+
+```sh
+npm run eval:live -- plan --suite creative --every 3            # jobs and worst-case cost, offline
+op run --env-file .env.op -- npm run eval:live -- run --live --suite creative --run my-run --every 3
+npm run eval:live -- judge --live --run my-run                  # AI judge over the creative records
+npm run eval:live -- summary --run my-run                       # offline
+npm run eval:live -- replay --run my-run                        # rescore stored responses with current code
+npm run eval:live -- resend --live --run my-run --seq 12 --model @cf/openai/gpt-oss-120b
+```
+
+Suites: `creative` (proposals for a measurement window and theme), `refusal` (edgy inputs, with or without the person's own words), `estimate` (sourced entities in batches of ten), `jev-bands` and `jev-proposals` (Jev's band check on the frozen set, or on a creative run's proposals).
+
+**Spend.** Each invocation stops before it would exceed `--max-usd` (default US$0.25) or a rolling budget computed from `evals/results/live/spend-ledger.jsonl`: `--daily-usd` 0.90 per 24 hours and `--monthly-usd` 4.50 per 30 days, both below the production gateway's caps. A failed call is charged at its worst case. Calls are paced with `--rpm` (5) and `--concurrency` (4). A stopped run resumes with the same `--run`; finished calls are skipped.
+
+**Replay log.** Every call appends one `abm-live-eval.v1` record to `evals/results/live/<run>/records.jsonl`: the exact request body, the raw response, the refusal or failure reason (`timeout`, `json_mode_error`, `rate_limited`, `spend_limited`, `refusal`, `transport_error`), latency, token usage, cost, gateway log id and the score. Judge verdicts are records too. `manifest.json` stores the git commit, prompt and set hashes, prices and budgets. These files stay out of Git; publish only aggregate results such as the table below.
+
+### Workers AI bake-off, 3 October 2026
+
+Run `bakeoff-2026-10-03`: 845 calls through `anything-but-metric-research` for US$0.255. The gateway's own analytics matched the harness's per-call cost. Prompt `creative-proposals.v1`. Thinking was disabled for Qwen3, GLM 4.7 Flash and Gemma 4; GLM 5.3 Flash and gpt-oss ran at `reasoning_effort: low` (GLM 5.3 cannot disable reasoning).
+
+- **creative:** every third case of `creative-inputs.json`, 20 inputs × 11 models.
+- **estimate:** all 47 entities, five batches per model.
+- **refusal:** every second case of `refusal.json` (40 edgy, 10 controls) with the person's own words passed as context, the riskier condition.
+- **judge:** `gpt-oss-120b` scored each case's lines blind and shuffled; 19 of 20 cases returned a valid verdict.
+
+| Model | Creative answered | Valid proposals | Estimates within ×2 / ×10 | Edgy answered | Judge mean (1–5) | Judged plausible | Best line | Latency p50 / p95 | Cost per creative call |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `glm-5.3-flash` | 100% | 79/80 | 98% / 100% | 98% | **3.23** | 74% | 6 | 7.1 s / 12.6 s | $0.00027 |
+| `gemma-4-26b-a4b-it` | 100% | 79/80 | 96% / 98% | 100% | 2.95 | 68% | 2 | 9.4 s / 11.3 s | $0.00015 |
+| `gpt-oss-120b` | 85% | 66/72 | 94% / 100% | 90% | 2.81 | 56% | 2 | 7.0 s / 21.2 s | $0.00067 |
+| `llama-3.3-70b-instruct-fp8-fast` | 100% | 80/80 | 89% / 94% | 100% | 2.74 | 63% | 3 | 8.3 s / 10.8 s | $0.00070 |
+| `glm-4.7-flash` | 95% | 63/80 | 81% / 92% | 78% | 2.54 | 44% | 2 | 5.9 s / 9.5 s | $0.00015 |
+| `llama-4-scout-17b-16e-instruct` | 95% | 76/80 | 83% / 92% | 100% | 2.54 | 56% | 0 | 5.2 s / 15.4 s | $0.00033 |
+| `qwen3-30b-a3b-fp8` | 75% | 58/80 | 92% / 100% | 83% | 2.50 | 64% | 0 | 2.9 s / 3.9 s | $0.00014 |
+| `gpt-oss-20b` | 100% | 77/80 | 70% / 83% | 95% | 2.49 | 41% | 2 | 62.6 s / 96.6 s | $0.00020 |
+| `mistral-small-3.1-24b-instruct` | 95% | 69/80 | 94% / 100% | 100% | 2.35 | 28% | 1 | 11.2 s / 14.7 s | $0.00032 |
+| `llama-3.1-8b-instruct-fp8-fast` | 95% | 63/79 | 79% / 83% | 93% | 2.28 | 33% | 1 | 2.7 s / 3.9 s | $0.00014 |
+| `llama-3.2-3b-instruct` (today's selector) | 60% | 44/80 | 55% / 70% | 60% | 2.18 | 27% | 0 | 1.8 s / 2.5 s | $0.00012 |
+
+"Answered" means at least one proposal passed every check: a parseable unit of the right dimension, a count between 0.1 and 1,000, and a line with exactly one `{N}`, the reference named and no other numbers. Latency and cost are for the creative call alone.
+
+What the run shows:
+
+- **No refusals.** None of the 440 edgy calls refused, even with the person's own words in the prompt. Edgy inputs were answered 90% of the time against 92% for controls, and the misses were check failures (counts out of range, numbers or missing names in the line), not refusals. Today's refusals come from the parser prompt, which sees raw text; this run did not test that prompt.
+- **GLM 5.3 Flash leads, but not decisively.** Per case it beat Gemma 4 11–6 (2 ties), gpt-oss-120b 9–3 and Llama 3.3 70B 10–5, which is suggestive on 19 cases rather than significant. It beat today's Llama 3.2 3B 10–0. Gemma 4 is the cheaper runner-up.
+- **Latency is the cost of quality.** The two leaders take 7–9 s at the median for the creative call alone. A production design needs a time limit with the catalogue as fallback.
+- **Estimates flatter the models.** The catalogue holds well-known, sourced facts, so a median error of zero often means recall. Small models still miss by orders of magnitude: Lake Superior as 12 km³ instead of about 12,100 km³, light-time to Neptune as 168 hours, a cricket pitch as the whole field. Request-time proposals for unfamiliar things will be harder; Jev's band check exists for this.
+- **Failure modes to handle:** gpt-oss-120b twice returned 2,500 `!` characters at full token cost; gpt-oss-20b ran at about a minute per call; models write units such as `µm`, `microns`, `yr` and `metric tons`, and sometimes a second `{label}` placeholder, which the checks now accept.
+
+Jev was not called: the gateway route to OpenRouter's Decisions API does not exist yet. `jev-bands` and `jev-proposals --from bakeoff-2026-10-03` are ready and stop with `jev_not_configured` at no cost until `JEV_DECISIONS_URL` is set.
 
 ## Reviewing a comparison
 

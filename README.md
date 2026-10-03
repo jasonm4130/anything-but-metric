@@ -55,11 +55,13 @@ This starts the **interface preview**. Conversions need the Worker, Workers AI a
 ```sh
 npm test              # Worker and library tests
 npm run check         # Astro and TypeScript diagnostics
-npm run eval:corpus   # Frozen acceptance cases and variety sweep
+npm run eval:corpus   # Frozen acceptance cases, variety and offline evaluation sweeps
 npm run build         # Static production assets
 ```
 
-The current baseline is **285 tests and 30 development acceptance cases passing**. These checks verify parsing, arithmetic, output contracts, protection and coverage. They are not a promise that every comparison is delightful or every possible unit is supported. See [evaluation notes](docs/evaluation.md).
+The current baseline is **294 tests and 30 development acceptance cases passing**. These checks verify parsing, arithmetic, output contracts, protection and coverage. They are not a promise that every comparison is delightful or every possible unit is supported. See [evaluation notes](docs/evaluation.md).
+
+`npm run eval:live` is a separate, opt-in harness for paid model evaluation. It refuses to run without `--live`, never runs in CI, enforces spend budgets and keeps a replayable log of every request and response outside Git.
 
 ## Deploy your own
 

@@ -1,0 +1,484 @@
+{
+  "schemaVersion": 1,
+  "frozenAt": "2026-10-03",
+  "purpose": "Sourced catalogue values used as gold for creative-model estimates. Rows whose label states a number are excluded so the label cannot leak the answer.",
+  "derivedFrom": [
+    "src/data/references.json",
+    "src/data/reference-additions.json",
+    "src/data/corpus-additions.json"
+  ],
+  "corpusSha256": "7531a759f6da6ff651d3c5725ed4dcaf8b95faf4934ba509b23ea8fbf009089c",
+  "excluded": 47,
+  "items": [
+    {
+      "id": "length-red-blood-cell",
+      "thing": "human red blood cells",
+      "dimension": "length",
+      "gold": [
+        0.0000075,
+        "m"
+      ],
+      "sourceUrl": "https://www.ncbi.nlm.nih.gov/books/NBK263/"
+    },
+    {
+      "id": "length-fifa-pitch",
+      "thing": "FIFA-recommended football pitches",
+      "dimension": "length",
+      "gold": [
+        105,
+        "m"
+      ],
+      "sourceUrl": "https://publications.fifa.com/en/football-stadiums-guidelines/technical-guideline/stadium-guidelines/pitch-dimensions-and-surrounding-areas/"
+    },
+    {
+      "id": "length-earth-diameter",
+      "thing": "Earth's equatorial diameters",
+      "dimension": "length",
+      "gold": [
+        12756000,
+        "m"
+      ],
+      "sourceUrl": "https://science.nasa.gov/earth/facts/"
+    },
+    {
+      "id": "mass-iss",
+      "thing": "International Space Stations",
+      "dimension": "mass",
+      "gold": [
+        420000,
+        "kg"
+      ],
+      "sourceUrl": "https://ntrs.nasa.gov/api/citations/20180007945/downloads/20180007945.pdf"
+    },
+    {
+      "id": "mass-earth",
+      "thing": "Earths",
+      "dimension": "mass",
+      "gold": [
+        5.97219e+24,
+        "kg"
+      ],
+      "sourceUrl": "https://science.nasa.gov/moon/by-the-numbers/"
+    },
+    {
+      "id": "energy-hoover-hour",
+      "thing": "Hoover Dam powerplants running at nameplate capacity for an hour",
+      "dimension": "energy",
+      "gold": [
+        7488000000000,
+        "J"
+      ],
+      "sourceUrl": "https://www.usbr.gov/lc/hooverdam/faqs/powerfaq.html"
+    },
+    {
+      "id": "area-fifa-pitch",
+      "thing": "FIFA-recommended football pitches",
+      "dimension": "area",
+      "gold": [
+        7140,
+        "m^2"
+      ],
+      "sourceUrl": "https://publications.fifa.com/en/football-stadiums-guidelines/technical-guideline/stadium-guidelines/pitch-dimensions-and-surrounding-areas/"
+    },
+    {
+      "id": "area-fiba-court",
+      "thing": "FIBA basketball courts",
+      "dimension": "area",
+      "gold": [
+        420,
+        "m^2"
+      ],
+      "sourceUrl": "https://assets.fiba.basketball/image/upload/documents-corporate-fiba-official-rules-2024-v10a.pdf"
+    },
+    {
+      "id": "area-earth-surface",
+      "thing": "Earth surface areas",
+      "dimension": "area",
+      "gold": [
+        510064472000000,
+        "m^2"
+      ],
+      "sourceUrl": "https://science.nasa.gov/moon/by-the-numbers/"
+    },
+    {
+      "id": "area-brunei",
+      "thing": "Brunei Darussalams",
+      "dimension": "area",
+      "gold": [
+        5765000000,
+        "m^2"
+      ],
+      "sourceUrl": "https://www.information.gov.bn/SitePages/About%20Brunei%20Darussalam.aspx"
+    },
+    {
+      "id": "data-bluray-single",
+      "thing": "single-layer Blu-ray discs",
+      "dimension": "data",
+      "gold": [
+        25,
+        "GB"
+      ],
+      "sourceUrl": "https://us.blu-raydisc.com/blog/hd_benefits/capacity/"
+    },
+    {
+      "id": "time-soccer-half",
+      "thing": "regulation football halves",
+      "dimension": "time",
+      "gold": [
+        2700,
+        "s"
+      ],
+      "sourceUrl": "https://www.theifab.com/laws/latest/the-duration-of-the-match/"
+    },
+    {
+      "id": "time-iss-orbit",
+      "thing": "International Space Station orbits",
+      "dimension": "time",
+      "gold": [
+        5400,
+        "s"
+      ],
+      "sourceUrl": "https://www.nasa.gov/missions/station/spot-the-station-frequently-asked-questions/"
+    },
+    {
+      "id": "time-solar-day",
+      "thing": "solar days on Earth",
+      "dimension": "time",
+      "gold": [
+        86400,
+        "s"
+      ],
+      "sourceUrl": "https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/earth/"
+    },
+    {
+      "id": "time-twentieth-century",
+      "thing": "twentieth centuries",
+      "dimension": "time",
+      "gold": [
+        3155760000,
+        "s"
+      ],
+      "sourceUrl": "https://aa.usno.navy.mil/faq/millennium"
+    },
+    {
+      "id": "power-hoover",
+      "thing": "Hoover Dam powerplants at nameplate capacity",
+      "dimension": "power",
+      "gold": [
+        2080000000,
+        "W"
+      ],
+      "sourceUrl": "https://www.usbr.gov/lc/hooverdam/faqs/powerfaq.html"
+    },
+    {
+      "id": "pressure-standard-atmosphere",
+      "thing": "standard sea-level air pressure",
+      "dimension": "pressure",
+      "gold": [
+        101325,
+        "Pa"
+      ],
+      "sourceUrl": "https://www.nist.gov/pml/owm/metric-si/unit-conversion/pressure-and-gas-flow-unit-conversions"
+    },
+    {
+      "id": "speed-iss",
+      "thing": "the International Space Station orbital speed",
+      "dimension": "speed",
+      "gold": [
+        7777.777778,
+        "m/s"
+      ],
+      "sourceUrl": "https://www.nasa.gov/missions/station/spot-the-station-frequently-asked-questions/"
+    },
+    {
+      "id": "speed-bolt-100m",
+      "thing": "Usain Bolt’s average world-record sprint speed",
+      "dimension": "speed",
+      "gold": [
+        10.438413361,
+        "m/s"
+      ],
+      "sourceUrl": "https://worldathletics.org/athletes/_/14201847"
+    },
+    {
+      "id": "speed-light-vacuum",
+      "thing": "the speed of light in vacuum",
+      "dimension": "speed",
+      "gold": [
+        299792458,
+        "m/s"
+      ],
+      "sourceUrl": "https://www.nist.gov/pml/owm/si-units"
+    },
+    {
+      "id": "force-iss-earth-weight",
+      "thing": "International Space Stations on a standard-gravity force plate",
+      "dimension": "force",
+      "gold": [
+        4118793,
+        "N"
+      ],
+      "sourceUrl": "https://ntrs.nasa.gov/api/citations/20180007945/downloads/20180007945.pdf"
+    },
+    {
+      "id": "force-earth-moon-gravity",
+      "thing": "Earth-Moon gravitational pulls",
+      "dimension": "force",
+      "gold": [
+        198000000000000000000,
+        "N"
+      ],
+      "sourceUrl": "https://pumas.nasa.gov/sites/default/files/examples/08_19_05_1.pdf"
+    },
+    {
+      "id": "frequency-australian-grid",
+      "thing": "the Australian electricity-grid frequency",
+      "dimension": "frequency",
+      "gold": [
+        50,
+        "Hz"
+      ],
+      "sourceUrl": "https://www.aemo.com.au/Electricity/National-Electricity-Market-NEM/Security-and-reliability/-/media/80004354B88B4FEF96EAB673DDC99820.ashx"
+    },
+    {
+      "id": "frequency-tuning-fork",
+      "thing": "a concert-A tuning fork’s frequency",
+      "dimension": "frequency",
+      "gold": [
+        440,
+        "Hz"
+      ],
+      "sourceUrl": "https://www.yamaha.com/en/musical_instrument_guide/acoustic_guitar/play/play002.html"
+    },
+    {
+      "id": "volume-iss-habitable",
+      "thing": "International Space Station habitable volumes",
+      "dimension": "volume",
+      "gold": [
+        388,
+        "m^3"
+      ],
+      "sourceUrl": "https://ntrs.nasa.gov/api/citations/20180007945/downloads/20180007945.pdf"
+    },
+    {
+      "id": "volume-lake-superior",
+      "thing": "Lake Superiors",
+      "dimension": "volume",
+      "gold": [
+        12100000000000,
+        "m^3"
+      ],
+      "sourceUrl": "https://repository.library.noaa.gov/view/noaa/34616/noaa_34616_DS1.pdf"
+    },
+    {
+      "id": "mass-us-zinc-penny",
+      "thing": "a modern US penny",
+      "dimension": "mass",
+      "gold": [
+        0.0025,
+        "kg"
+      ],
+      "sourceUrl": "https://www.usmint.gov/news/media-kit/penny"
+    },
+    {
+      "id": "power-breville-smart-kettle",
+      "thing": "a Breville Smart Kettle Clear at its rated power",
+      "dimension": "power",
+      "gold": [
+        2400,
+        "W"
+      ],
+      "sourceUrl": "https://www.breville.com/en-au/product/bke840"
+    },
+    {
+      "id": "power-dyson-supersonic",
+      "thing": "a Dyson Supersonic hair dryer at its rated power",
+      "dimension": "power",
+      "gold": [
+        1600,
+        "W"
+      ],
+      "sourceUrl": "https://www.dyson.com/hair-care/hair-dryers/supersonic/prussian-blue-rich-copper"
+    },
+    {
+      "id": "power-vectron-ms-rtc",
+      "thing": "an RTC Vectron MS locomotive at maximum power",
+      "dimension": "power",
+      "gold": [
+        6400000,
+        "W"
+      ],
+      "sourceUrl": "https://press.siemens.com/global/en/pressrelease/siemens-mobility-hands-over-first-vectron-ms-locomotive-rtc-spa"
+    },
+    {
+      "id": "length-dippy-replica",
+      "thing": "a Dippy dinosaur replica from head to tail",
+      "dimension": "length",
+      "gold": [
+        26,
+        "m"
+      ],
+      "sourceUrl": "https://www.nhm.ac.uk/discover/britains-biggest-jurassic-dinosaurs.html"
+    },
+    {
+      "id": "length-eiffel-current-height",
+      "thing": "the Eiffel Tower's full height including its antenna",
+      "dimension": "length",
+      "gold": [
+        330,
+        "m"
+      ],
+      "sourceUrl": "https://www.toureiffel.paris/fr/le-monument/chiffres-cle"
+    },
+    {
+      "id": "area-doubles-tennis-court",
+      "thing": "a doubles tennis court within its playing lines",
+      "dimension": "area",
+      "gold": [
+        260.87173632,
+        "m^2"
+      ],
+      "sourceUrl": "https://www.itftennis.com/en/about-us/organisation/tennis-glossary/"
+    },
+    {
+      "id": "length-jupiter-diameter",
+      "thing": "Jupiter's equatorial diameter",
+      "dimension": "length",
+      "gold": [
+        142984000,
+        "m"
+      ],
+      "sourceUrl": "https://science.nasa.gov/solar-system/planet-sizes-and-locations-in-our-solar-system/"
+    },
+    {
+      "id": "length-neptune-sun-distance",
+      "thing": "Neptune's average distance from the Sun",
+      "dimension": "length",
+      "gold": [
+        4500000000000,
+        "m"
+      ],
+      "sourceUrl": "https://science.nasa.gov/solar-system/planet-sizes-and-locations-in-our-solar-system/"
+    },
+    {
+      "id": "time-jupiter-orbit",
+      "thing": "Jupiter's orbital period",
+      "dimension": "time",
+      "gold": [
+        375535440,
+        "s"
+      ],
+      "sourceUrl": "https://science.nasa.gov/learn/basics-of-space-flight/chapter1-2/"
+    },
+    {
+      "id": "time-neptune-light",
+      "thing": "light's approximate travel time from the Sun to Neptune",
+      "dimension": "time",
+      "gold": [
+        15120,
+        "s"
+      ],
+      "sourceUrl": "https://science.nasa.gov/learn/basics-of-space-flight/chapter1-2/"
+    },
+    {
+      "id": "length-volleyball-court",
+      "thing": "an official volleyball court's length",
+      "dimension": "length",
+      "gold": [
+        18,
+        "m"
+      ],
+      "sourceUrl": "https://www.volleyballengland.org/get-involved/play/volleyball"
+    },
+    {
+      "id": "area-volleyball-court",
+      "thing": "an official volleyball court playing area",
+      "dimension": "area",
+      "gold": [
+        162,
+        "m^2"
+      ],
+      "sourceUrl": "https://www.volleyballengland.org/get-involved/play/volleyball"
+    },
+    {
+      "id": "length-lego-eiffel",
+      "thing": "a built LEGO Eiffel Tower model",
+      "dimension": "length",
+      "gold": [
+        1.49,
+        "m"
+      ],
+      "sourceUrl": "https://www.lego.com/en-us/aboutus/news/2022/november/lego-eiffel-tower-set"
+    },
+    {
+      "id": "mass-jupiter",
+      "thing": "Jupiter",
+      "dimension": "mass",
+      "gold": [
+        1.8979619820000002e+27,
+        "kg"
+      ],
+      "sourceUrl": "https://science.nasa.gov/learn/basics-of-space-flight/chapter1-2/"
+    },
+    {
+      "id": "area-cricket-pitch",
+      "thing": "a standard cricket pitch rectangle",
+      "dimension": "area",
+      "gold": [
+        61.3160064,
+        "m^2"
+      ],
+      "sourceUrl": "https://www.icc-cricket.com/news/mens-odi-match-clause-6-the-pitch"
+    },
+    {
+      "id": "angle-uci-track-bend",
+      "thing": "the Shanghai velodrome’s maximum bank angle",
+      "dimension": "angle",
+      "gold": [
+        45,
+        "deg"
+      ],
+      "sourceUrl": "https://www.uci.org/article/what-is-track-cycling/6yFQsdYGiuw1bIWiLS6Hxq"
+    },
+    {
+      "id": "length-uk-driving-eyesight",
+      "thing": "the DVSA new-style number-plate eyesight-check distance",
+      "dimension": "length",
+      "gold": [
+        20,
+        "m"
+      ],
+      "sourceUrl": "https://www.gov.uk/driving-test/what-happens-during-test"
+    },
+    {
+      "id": "length-yosemite-falls",
+      "thing": "Yosemite Falls’ total height",
+      "dimension": "length",
+      "gold": [
+        739,
+        "m"
+      ],
+      "sourceUrl": "https://www.usgs.gov/media/images/base-yosemite-falls"
+    },
+    {
+      "id": "length-giraffe-specimen",
+      "thing": "the Natural History Museum taxidermy giraffe’s height",
+      "dimension": "length",
+      "gold": [
+        4.35,
+        "m"
+      ],
+      "sourceUrl": "https://www.nhm.ac.uk/discover/rehousing-a-taxidermy-giraffe.html"
+    },
+    {
+      "id": "length-mouse-body",
+      "thing": "a common house mouse body length",
+      "dimension": "length",
+      "gold": [
+        0.1,
+        "m"
+      ],
+      "sourceUrl": "https://www.nhm.ac.uk/discover/how-is-a-mouse-like-a-giraffe.html"
+    }
+  ]
+}
