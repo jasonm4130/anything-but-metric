@@ -79,6 +79,7 @@ export function mulberry32(seed) {
 }
 
 export function costOf(model, usage) {
+  if (typeof usage?.providerCost === 'number') return usage.providerCost;
   const price = models[model];
   if (!price || !usage) return undefined;
   return ((usage.inputTokens ?? 0) * price.input + (usage.outputTokens ?? 0) * price.output) / 1e6;
@@ -176,7 +177,7 @@ export async function planSuite(E, suite, options) {
       }
     }
     const random = mulberry32(20261003);
-    const usable = proposals.filter(proposal => { try { E.unit(proposal.value, proposal.unit); return true; } catch { return false; } }).slice(0, limit);
+    const usable = proposals.slice(0, limit);
     for (let start = 0; start < usable.length; start += size) {
       const batch = usable.slice(start, start + size).map(proposal => ({ proposal, band: E.bandCheckQuestion(proposal, Math.floor(random() * E.bandCount)) }));
       jobs.push({ suite, caseId: `proposals-${start / size + 1}`, condition: 'batch', model: E.jevModel, bands: batch.map(({ proposal, band }) => ({ id: proposal.id, sourceSeq: proposal.sourceSeq, sourceModel: proposal.model, proposedKey: band.proposedKey, bands: band.bands })),
