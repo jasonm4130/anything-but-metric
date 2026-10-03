@@ -22,7 +22,7 @@ The production gateway uses 30 requests per minute, US$1 over a rolling day and 
 
 The `infra/` OpenTofu stack owns the `anything-but-metric` gateway, its spend and rate limits, and its OpenRouter hookup. OpenRouter's key is stored in the gateway, so requests send only the gateway token. See [`infra/README.md`](../infra/README.md) for resources, credentials and the first-apply gate.
 
-Before the first apply, the account's token stack must have issued the Anything But Metric deploy token, and the account's root Terraform state must have released the gateway without destroying it. Never apply while both states own the gateway.
+Before the first apply, the account's token stack must have issued the Anything But Metric deploy token and per-project state credential (never the root Terraform R2 keys), and the account's root Terraform state must have released the gateway without destroying it. Never apply while both states own the gateway.
 
 ```sh
 cd infra
@@ -32,7 +32,7 @@ op run --env-file=.env.op -- tofu plan -input=false -out=gateway.tfplan
 op run --env-file=.env.op -- tofu apply gateway.tfplan
 ```
 
-Review the saved plan before applying it. The first plan imports the gateway with no changes to it and creates only the OpenRouter custom provider, secrets and provider keys.
+Review the saved plan before applying it. The first plan imports the gateway with no changes to it and creates only the OpenRouter custom provider, one secret and one provider key.
 
 The Worker reaches models through gateway ID `anything-but-metric`:
 
@@ -40,9 +40,8 @@ The Worker reaches models through gateway ID `anything-but-metric`:
 | --- | --- |
 | Workers AI | The `AI` binding with `gateway: { id: "anything-but-metric" }` |
 | Jev decisions | `https://gateway.ai.cloudflare.com/v1/{account_id}/anything-but-metric/custom-openrouter-api/api/alpha/decisions` |
-| OpenRouter chat | `https://gateway.ai.cloudflare.com/v1/{account_id}/anything-but-metric/openrouter/chat/completions` |
 
-The current Worker calls only Workers AI. Applying the stack does not deploy the Worker.
+The custom route covers every OpenRouter path, so chat completions use `.../custom-openrouter-api/api/v1/chat/completions`. The current Worker calls only Workers AI. Applying the stack does not deploy the Worker.
 
 ## Load configuration
 

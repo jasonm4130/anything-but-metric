@@ -15,7 +15,6 @@ terraform {
   }
 
   backend "s3" {
-    bucket = "terraform-state"
     key    = "anything-but-metric/infra.tfstate"
     region = "auto"
 
@@ -24,7 +23,8 @@ terraform {
     skip_region_validation      = true
     skip_requesting_account_id  = true
     use_path_style              = true
-    # Supply endpoints.s3 at initialization; credentials only through AWS_* env.
+    # Supply bucket and endpoints.s3 at initialization; credentials only through
+    # AWS_* env, from the per-project state credential.
     # No locking is configured. Enforce one writer externally.
   }
 

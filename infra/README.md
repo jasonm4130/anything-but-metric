@@ -11,9 +11,8 @@ an import block and keeps its settings unchanged.
 | --- | --- |
 | `cloudflare_ai_gateway.anything_but_metric` | Existing gateway, imported. Authentication on, request logs off, 30 requests per minute, US$1 per rolling day and US$5 per thirty rolling days. |
 | `restful_resource.openrouter_custom_provider` | Account custom provider `openrouter-api`, base URL `https://openrouter.ai`. |
-| `cloudflare_secrets_store_secret.openrouter["openrouter"]` | Stored OpenRouter key for the native `openrouter` route. |
-| `cloudflare_secrets_store_secret.openrouter["custom-openrouter-api"]` | The same key for the custom provider. |
-| `restful_resource.openrouter_provider_key[...]` | Gateway provider keys (BYOK) that point at those secrets, alias `default`. |
+| `cloudflare_secrets_store_secret.openrouter` | Stored OpenRouter key for the custom provider. |
+| `restful_resource.openrouter_provider_key` | Gateway provider key (BYOK) for `custom-openrouter-api` that points at that secret, alias `default`. |
 
 The gateway keeps `prevent_destroy`. Its arguments match the former central
 Terraform resource, including the Secrets Store association (`secrets_store_id`).
@@ -29,16 +28,16 @@ the stored key only when that header is absent.
 | --- | --- |
 | Workers AI (creative generation) | Unchanged: `env.AI.run(model, input, { gateway: { id: "anything-but-metric" } })` |
 | Jev decisions (`typesafe/jev-1.13`) | `POST .../anything-but-metric/custom-openrouter-api/api/alpha/decisions` |
-| OpenRouter chat completions | `POST .../anything-but-metric/openrouter/chat/completions` |
 
 Cloudflare documents the native [OpenRouter route](https://developers.cloudflare.com/ai-gateway/usage/providers/openrouter/)
 only as a replacement for `https://openrouter.ai/api/v1/chat/completions`. Jev's
 decision API is `https://openrouter.ai/api/alpha/decisions`, outside that path. A
 [custom provider](https://developers.cloudflare.com/ai-gateway/configuration/custom-providers/)
 appends everything after `custom-{slug}/` to its base URL, so the custom route above
-reaches that endpoint. [BYOK](https://developers.cloudflare.com/ai-gateway/configuration/bring-your-own-keys/)
+reaches that endpoint, and covers every other OpenRouter path too, chat completions
+included (`POST .../anything-but-metric/custom-openrouter-api/api/v1/chat/completions`). [BYOK](https://developers.cloudflare.com/ai-gateway/configuration/bring-your-own-keys/)
 looks keys up by secret name `{gateway_id}_{provider_slug}_{alias}`, which this stack
-creates before each provider key.
+creates before the provider key.
 
 Two details are not yet proven against the live account. The provider slug used for a
 custom provider's stored key is assumed to be `custom-openrouter-api`. Cloudflare's
@@ -52,7 +51,7 @@ Cloudflare provider 5.22.0 (and 5.26.0, the newest checked) has no resource for
 custom providers or gateway provider keys. Both use `magodo/restful` 0.25.2 against
 the documented API, as the central account repository does for older gateways.
 Provider keys cannot be edited in place, so any change to their attributes replaces
-them. Rotating the OpenRouter key updates both secrets in place.
+them. Rotating the OpenRouter key updates the secret in place.
 
 The OpenRouter key is persisted in encrypted state, because the Secrets Store secret
 resource has no write-only value in this provider version. Never print state.
@@ -67,18 +66,23 @@ real 1Password item. The stack needs:
   lists provider-key creation under Secrets Store Write.
 - An independent state passphrase of at least 32 characters.
 - The OpenRouter API key.
-- Bucket-scoped R2 credentials for the existing `terraform-state` bucket.
+- The per-project state credential, issued by the account's token stack and scoped
+  to this stack's own state (with a dedicated bucket if R2 cannot scope it to the
+  `anything-but-metric/` prefix). Never use the root Cloudflare Terraform R2 keys.
 - The account ID and the gateway's live Secrets Store ID as plain values.
 
 Copy `backend.hcl.example` outside the repository or to the ignored `backend.hcl`
-and set the account's R2 endpoint. State lives at `anything-but-metric/infra.tfstate`.
+and set the state bucket and the account's R2 endpoint. State lives at
+`anything-but-metric/infra.tfstate`, reached only with the per-project state
+credential, which must exist before the first `tofu init`.
 
 ## Ordering
 
 The gateway currently belongs to the account repository's root Terraform state.
 Apply this stack only after both of these are done there:
 
-1. The Anything But Metric token stack is applied and its token saved in 1Password.
+1. The Anything But Metric token stack is applied and its deploy token and
+   per-project state credential are saved in 1Password.
 2. The root state has released `cloudflare_ai_gateway.anything_but_metric` without
    destroying it, for example with a `removed` block and `destroy = false`.
 
@@ -95,14 +99,14 @@ op run --env-file=.env.op -- tofu plan -input=false -out=gateway.tfplan
 ```
 
 The first plan must show exactly one import, with no changes to the gateway, and
-these creates: one custom provider, two secrets and two provider keys. Stop on any
+these creates: one custom provider, one secret and one provider key. Stop on any
 gateway update, replacement or deletion, or any other change. Only after review:
 
 ```sh
 op run --env-file=.env.op -- tofu apply gateway.tfplan
 ```
 
-A following plan must report no changes. Then verify the provider keys in the
+A following plan must report no changes. Then verify the provider key in the
 dashboard and send one Jev decision request through the custom route. Workers AI
 traffic should continue unchanged. The backend has no locking: keep one writer.
 
