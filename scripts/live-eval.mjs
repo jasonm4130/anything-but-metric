@@ -108,7 +108,7 @@ const sha = text => createHash('sha256').update(text).digest('hex');
 const percentile = (values, p) => { const sorted = [...values].sort((a, b) => a - b); return sorted.length ? sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * p) - 1)] : undefined; };
 const round = (value, digits = 4) => value === undefined ? undefined : Number(value.toFixed(digits));
 
-async function loadEngine() {
+export async function loadEngine() {
   const dir = await mkdtemp(resolve(tmpdir(), 'abm-live-eval-'));
   await build({ stdin: { contents: 'export * from "./src/lib/creative-proposals"; export * from "./src/lib/jev-decisions"; export * from "./src/lib/convert"; export { unit } from "mathjs";', resolveDir: process.cwd() }, bundle: true, platform: 'node', format: 'esm', outfile: resolve(dir, 'engine.mjs'), logLevel: 'error' });
   const engine = await import(pathToFileURL(resolve(dir, 'engine.mjs')));
