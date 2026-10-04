@@ -3,7 +3,7 @@ import { parseTokenUsage, tokenComparisonMenu, tokenComparisonResult } from "./a
 import { comparisonMenu, comparisonResult, type ComparisonPacket, type ComparisonResult } from "./comparison-flow";
 import { formatNumber, validateMeasurement } from "./convert";
 import { checkProposalFor, creativePromptVersion, creativeProposalInput, creativeProposalPrompt, creativeProposalSchema, measureWindow, responseContent, scoreCreativeResponse, type CreativeProposal, type ProposalCheck } from "./creative-proposals";
-import { bandCheckQuestion, bandVerdict, choiceAnswer, chosenBandValue, decisionsRequest, jevModel, jevQuestionVersion, pickQuestion, readingQuestion, withinBands, type BandCheck, type DecisionQuestion, type DecisionsRequest } from "./jev-decisions";
+import { bandCheckQuestion, bandVerdict, choiceAnswer, chosenBandValue, decisionsRequest, guardQuestion, guardState, guardVerdict, guardVersion, jevModel, jevQuestionVersion, pickQuestion, readingQuestion, withinBands, type BandCheck, type DecisionQuestion, type DecisionsRequest } from "./jev-decisions";
 import { interpretMeasurement } from "./measurement";
 import { ambiguousReadings, describeMeasure, localCurrency, physical, type Measure } from "./measures";
 import { readerModel, readerOptions, readerPrompt, readerPromptVersion, readerSchema, readMeasure } from "./reader";
@@ -13,7 +13,8 @@ import { recentFamilyLimit } from "./scene-packets";
  * Production conversion flow. A creative model proposes references with estimated values,
  * Jev checks those values and chooses the reference, and code keeps only the arithmetic.
  * The reviewed catalogue is the template fallback when the creative step fails or refuses,
- * and a plain restatement of the measure covers what the catalogue cannot.
+ * and a plain restatement of the measure covers what the catalogue cannot. Prose that only a
+ * model can read is also screened by Jev, alongside the reader, for attempts to steer the system.
  * Every stage is recorded so questions and responses can be replayed later.
  */
 
@@ -37,7 +38,7 @@ export type Models = {
   jev?: (request: DecisionsRequest, timeoutMs: number) => Promise<unknown>;
 };
 
-export type StageName = "reader" | "jev-reading" | "jev-estimate" | "creative" | "jev-review" | "jev-template";
+export type StageName = "reader" | "jev-guard" | "jev-reading" | "jev-estimate" | "creative" | "jev-review" | "jev-template";
 export type StageRecord = {
   stage: StageName; model: string; promptVersion: string; latencyMs: number; outcome: string;
   request?: unknown; response?: unknown; detail?: unknown;
@@ -150,20 +151,33 @@ async function timed<T>(context: Context, run: () => Promise<T>): Promise<{ valu
   }
 }
 
-async function askJev(context: Context, stage: StageName, state: unknown, questions: Record<string, DecisionQuestion>): Promise<unknown | undefined> {
+/** One Jev call and its stage record, which the caller pushes. */
+async function callJev(context: Context, stage: StageName, state: unknown, questions: Record<string, DecisionQuestion>, promptVersion = jevQuestionVersion): Promise<{ value?: unknown; record: StageRecord }> {
   const remaining = budgets.totalMs - context.elapsed();
-  if (!context.models.jev) {
-    context.stages.push({ stage, model: jevModel, promptVersion: jevQuestionVersion, latencyMs: 0, outcome: "unavailable" });
-    return undefined;
-  }
-  if (remaining < 1_000) {
-    context.stages.push({ stage, model: jevModel, promptVersion: jevQuestionVersion, latencyMs: 0, outcome: "skipped_deadline" });
-    return undefined;
-  }
+  if (!context.models.jev) return { record: { stage, model: jevModel, promptVersion, latencyMs: 0, outcome: "unavailable" } };
+  if (remaining < 1_000) return { record: { stage, model: jevModel, promptVersion, latencyMs: 0, outcome: "skipped_deadline" } };
   const request = decisionsRequest(state, questions);
   const call = await timed(context, () => context.models.jev!(request, Math.min(budgets.jevMs, remaining - 500)));
-  context.stages.push({ stage, model: jevModel, promptVersion: jevQuestionVersion, latencyMs: call.latencyMs, outcome: call.failure ? call.failure.reason : "ok", request, response: bounded(call.failure ? call.failure.response : call.value) });
-  return call.value;
+  return { value: call.value, record: { stage, model: jevModel, promptVersion, latencyMs: call.latencyMs, outcome: call.failure ? call.failure.reason : "ok", request, response: bounded(call.failure ? call.failure.response : call.value) } };
+}
+
+async function askJev(context: Context, stage: StageName, state: unknown, questions: Record<string, DecisionQuestion>): Promise<unknown | undefined> {
+  const { value, record } = await callJev(context, stage, state, questions);
+  context.stages.push(record);
+  return value;
+}
+
+/**
+ * Jev's guard on the visitor's own words, asked alongside the reader. It blocks only on a
+ * readable verdict that the text is not a measurement; without Jev, or when Jev fails or its
+ * reply is unreadable, the request continues exactly as it would without the guard.
+ */
+async function screen(context: Context): Promise<{ record: StageRecord; blocked: boolean }> {
+  const { value, record } = await callJev(context, "jev-guard", guardState(context.input), { guard: guardQuestion() }, guardVersion);
+  if (record.outcome !== "ok") return { record, blocked: false };
+  const verdict = guardVerdict(choiceAnswer(value, "guard"));
+  if (!verdict) return { record: { ...record, outcome: "unreadable" }, blocked: false };
+  return { record: { ...record, outcome: verdict.blocked ? "blocked" : "ok", detail: verdict }, blocked: verdict.blocked };
 }
 
 /** A reply Jev sent that code cannot read is recorded as unreadable and handled as if Jev were unavailable. */
@@ -223,15 +237,24 @@ async function interpret(context: Context): Promise<{ measure?: Measure; status?
     return measure ? { measure } : { status: 422, error: messages.unrecognised };
   }
 
+  // The guard runs alongside the reader, so it adds latency only when Jev is slower than the reader.
+  const screening = screen(context);
+  // Only a programming error rejects here; mark it handled now and let the await below report it.
+  screening.catch(() => undefined);
   const body = { messages: [{ role: "system", content: readerPrompt }, { role: "user", content: input }], response_format: { type: "json_schema", json_schema: readerSchema }, temperature: 0, ...readerOptions };
   const call = await timed(context, () => context.models.workersAi(readerModel, body, budgets.readerMs));
+  const screened = await screening;
+  context.stages.push(screened.record);
+  // A blocked request gets the same answer as text with nothing to measure.
+  const refused = { status: 422, error: messages.unrecognised };
   if (call.failure) {
     context.stages.push({ stage: "reader", model: readerModel, promptVersion: readerPromptVersion, latencyMs: call.latencyMs, outcome: call.failure.reason, request: input, response: bounded(call.failure.response) });
+    if (screened.blocked) return refused;
     return call.failure.reason === "rate_limited" ? { status: 429, error: messages.busy } : { status: 502, error: messages.readerDown };
   }
   const read = readMeasure(call.value, input);
   context.stages.push({ stage: "reader", model: readerModel, promptVersion: readerPromptVersion, latencyMs: call.latencyMs, outcome: read.outcome, request: input, response: bounded(call.value) });
-  if (read.outcome !== "ok") return { status: 422, error: messages.unrecognised };
+  if (screened.blocked || read.outcome !== "ok") return refused;
   // Temperatures are not ratios, so a band correction would be meaningless; they keep the reading.
   if (!read.checkEstimate || !read.measure.estimate || read.measure.dimension === "temperature") return { measure: read.measure };
 

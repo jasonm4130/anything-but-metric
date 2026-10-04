@@ -41,7 +41,7 @@ The Worker reaches models through gateway ID `anything-but-metric`:
 | Workers AI | The `AI` binding with `gateway: { id: "anything-but-metric" }` |
 | Jev decisions | `https://gateway.ai.cloudflare.com/v1/{account_id}/anything-but-metric/custom-openrouter-api/api/alpha/decisions` |
 
-The custom route covers every OpenRouter path, so chat completions use `.../custom-openrouter-api/api/v1/chat/completions`. The Worker calls Workers AI for the reader and creative models and Jev for checks and choices. It reaches Jev only when both `JEV_DECISIONS_URL` and `AI_GATEWAY_TOKEN` are installed; otherwise it answers without Jev's checks. Applying the stack does not deploy the Worker.
+The custom route covers every OpenRouter path, so chat completions use `.../custom-openrouter-api/api/v1/chat/completions`. The Worker calls Workers AI for the reader and creative models and Jev for checks, choices and screening prose input. It reaches Jev only when both `JEV_DECISIONS_URL` and `AI_GATEWAY_TOKEN` are installed; otherwise it answers without Jev's checks. Applying the stack does not deploy the Worker.
 
 ## First release of the model-led flow
 

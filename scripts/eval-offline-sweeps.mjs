@@ -10,7 +10,7 @@ import { createHash } from 'node:crypto';
 const read = async path => JSON.parse(await readFile(path, 'utf8'));
 const dir = await mkdtemp(resolve(tmpdir(), 'abm-offline-sweeps-'));
 try {
-  await build({ stdin: { contents: 'export * from "./src/lib/comparison-flow"; export * from "./src/lib/measurement"; export * from "./src/lib/convert"; export * from "./src/lib/creative-proposals"; export * from "./src/lib/jev-decisions"; export * from "./src/lib/measures"; export * from "./src/lib/reader"; export { unit, evaluate } from "mathjs";', resolveDir: process.cwd() }, bundle: true, platform: 'node', format: 'esm', outfile: resolve(dir, 'engine.mjs'), logLevel: 'error' });
+  await build({ stdin: { contents: 'export * from "./src/lib/comparison-flow"; export * from "./src/lib/measurement"; export * from "./src/lib/convert"; export * from "./src/lib/creative-proposals"; export * from "./src/lib/jev-decisions"; export * from "./src/lib/measures"; export * from "./src/lib/reader"; export * from "./src/lib/model-flow"; export { unit, evaluate } from "mathjs";', resolveDir: process.cwd() }, bundle: true, platform: 'node', format: 'esm', outfile: resolve(dir, 'engine.mjs'), logLevel: 'error' });
   const E = await import(pathToFileURL(resolve(dir, 'engine.mjs')));
   const failures = [];
   const noParser = async () => ({ recognized: false, quantity: 0, sourceUnit: 'm' });
@@ -176,9 +176,32 @@ try {
   }).map(check => check.id);
   if (bandFailures.length) failures.push(`jev bands: ${bandFailures.join(', ')}`);
 
-  // 9. Frozen-set integrity: unique ids, readable gold units, catalogue drift.
+  // 9. Jev's input guard (hard invariant): run the production flow with fake models and check that
+  // no attack or off-topic row reaches a model, or gets an answer, without Jev's guard being asked.
+  const injection = await read('evals/sets/injection.json');
+  const guardPaths = {};
+  const guardFailures = [];
+  for (const item of injection.cases) {
+    const seen = { reader: false, creative: false, guard: false };
+    const fake = {
+      workersAi: async (_model, body) => { seen[body.messages[0].content === E.readerPrompt ? 'reader' : 'creative'] = true; throw new E.StageFailure('provider'); },
+      jev: async request => { if (request.questions.guard) seen.guard = true; throw new E.StageFailure('provider'); }
+    };
+    const outcome = await E.answer(item.input, [], fake, { requestId: item.id, seed: 1, now: () => 0, at: '2026-10-04T00:00:00.000Z' });
+    const path = seen.guard ? 'guarded' : seen.creative ? 'creativeAsContext' : outcome.status === 200 ? 'catalogueOnly' : 'rejectedLocally';
+    const counts = guardPaths[item.label] ??= {};
+    counts[path] = (counts[path] ?? 0) + 1;
+    if (seen.reader && !seen.guard) guardFailures.push(`${item.id}: reader without guard`);
+    if (item.label !== 'measurement' && !seen.guard && (seen.creative || outcome.status === 200)) guardFailures.push(`${item.id}: ${path} without guard`);
+  }
+  const labels = new Set(['measurement', 'injection', 'off_topic_or_abuse']);
+  const badRows = injection.cases.filter(row => !labels.has(row.label) || !['dev', 'holdout'].includes(row.split) || typeof row.input !== 'string' || !row.input.trim() || row.input.length > 500).map(row => row.id);
+  if (badRows.length) guardFailures.push(`malformed rows: ${badRows.join(', ')}`);
+  if (guardFailures.length) failures.push(`guard: ${guardFailures.join('; ')}`);
+
+  // 10. Frozen-set integrity: unique ids, readable gold units, catalogue drift.
   const integrity = {};
-  for (const [name, rows] of [['interpretation', interpretation.cases], ['refusal', refusal.cases], ['creative-inputs', creative.cases], ['estimate-entities', entities.items], ['gate-adversarial', gateSet.cases]]) {
+  for (const [name, rows] of [['interpretation', interpretation.cases], ['refusal', refusal.cases], ['creative-inputs', creative.cases], ['estimate-entities', entities.items], ['gate-adversarial', gateSet.cases], ['injection', injection.cases]]) {
     const ids = rows.map(row => row.id);
     const unreadable = rows.flatMap(row => [row.gold, ...(row.alternatives ?? [])].filter(gold => gold && gold[1] !== 'ratio').filter(gold => { try { E.unit(gold[0], gold[1]); return false; } catch { return true; } }).map(() => row.id));
     integrity[name] = { rows: rows.length, duplicateIds: ids.length - new Set(ids).size, unreadableGold: unreadable };
@@ -188,7 +211,7 @@ try {
   const corpusRows = (await Promise.all(corpusFiles.map(read))).flat();
   integrity['estimate-entities'].catalogueChangedSinceFrozen = createHash('sha256').update(JSON.stringify(corpusRows)).digest('hex') !== entities.corpusSha256;
 
-  // 10. Live-harness self-check: guards, scoring and summaries on synthetic records (no network).
+  // 11. Live-harness self-check: guards, scoring and summaries on synthetic records (no network).
   const harness = await import(pathToFileURL(resolve('scripts/live-eval.mjs')));
   const harnessFailures = [];
   const expectThrow = (label, fn) => { try { fn(); harnessFailures.push(`${label} did not throw`); } catch { /* expected */ } };
@@ -213,6 +236,16 @@ try {
   const estimateRow = rows.find(row => row.suite === 'estimate');
   if (refusalRow?.refusalRate !== 0.667) harnessFailures.push(`refusalRate ${refusalRow?.refusalRate}`);
   if (estimateRow?.within2x !== 0.5 || estimateRow?.medianAbsLog10Error !== 0) harnessFailures.push(`estimate summary ${JSON.stringify(estimateRow)}`);
+  const guardAnswer = (choice, measurement) => ({ answers: { guard: { choice, probabilities: { [choice]: 1 - measurement, measurement } } } });
+  const guardRecords = [
+    { suite: 'guard', condition: 'injection:dev', model: 'typesafe/jev-1.13', status: 'ok', latencyMs: 10, costUsd: 0, input: 'x', gold: 'injection', category: 'override', response: guardAnswer('injection', 0.05) },
+    { suite: 'guard', condition: 'injection:dev', model: 'typesafe/jev-1.13', status: 'ok', latencyMs: 10, costUsd: 0, input: 'y', gold: 'measurement', category: 'tricky', response: guardAnswer('injection', 0.4) },
+    { suite: 'guard', condition: 'injection:dev', model: 'typesafe/jev-1.13', status: 'ok', latencyMs: 10, costUsd: 0, input: 'z', gold: 'measurement', category: 'tricky', response: { answers: {} } }
+  ].map(record => ({ ...record, scored: harness.scoreRecord(E, record) }));
+  if (guardRecords.map(record => record.scored.outcome).join(',') !== 'ok,ok,schema_error') harnessFailures.push('guard scoring');
+  const guardRow = harness.summarise(guardRecords)[0];
+  if (guardRow?.catchRate !== 1 || guardRow?.falsePositiveRate !== 0 || guardRow?.byThreshold['0.5']?.falsePositiveRate !== 1 || guardRow?.answered !== 2) harnessFailures.push(`guard summary ${JSON.stringify(guardRow)}`);
+  if (harness.guardGold({ tags: ['injection'] }) !== 'injection' || harness.guardGold({ topic: 'drugs' }) !== 'measurement') harnessFailures.push('guard gold');
   if (harness.classifyError(new Error("AiError: JSON Mode couldn't be met")) !== 'json_mode_error') harnessFailures.push('classifyError json mode');
   if (harness.costOf('@cf/meta/llama-3.2-3b-instruct', { inputTokens: 1e6, outputTokens: 1e6 }) !== 0.386) harnessFailures.push('costOf');
   // Replay tooling for the production log: query guards, summaries and rescoring.
@@ -239,6 +272,7 @@ try {
     gate: { cases: gateSet.cases.length, mismatches: gateMismatches },
     creativeWindows: { cases: creative.cases.length, widened: widenedWindows, failures: windowFailures },
     jevBands: { checks: bandSet.checks.length, failures: bandFailures },
+    guardPaths: { cases: injection.cases.length, byLabel: guardPaths, failures: guardFailures },
     integrity,
     harnessSelfCheck: { failures: harnessFailures },
     failures

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bandCheckQuestion, bandCount, bandVerdict, choiceAnswer, decisionsRequest, noulProbability, pickQuestion, refusalQuestion } from "../src/lib/jev-decisions";
+import { bandCheckQuestion, bandCount, bandVerdict, choiceAnswer, decisionsRequest, guardVerdict, noulProbability, pickQuestion, refusalQuestion } from "../src/lib/jev-decisions";
 
 const subject = { thing: "double-decker bus", dimension: "mass", value: 12, unit: "tonne" };
 
@@ -44,5 +44,17 @@ describe("Jev decisions", () => {
     expect(() => pickQuestion([])).toThrow(RangeError);
     expect(() => pickQuestion(Array.from({ length: 256 }, (_, index) => ({ id: `c${index}`, description: "x" })))).toThrow(RangeError);
     expect(decisionsRequest({ measurement: "40 t" }, { pick: pickQuestion([{ id: "bus", description: "buses" }]) })).toMatchObject({ model: "typesafe/jev-1.13", questions: { pick: { type: "choice" } } });
+  });
+  it("blocks only a readable non-measurement guard verdict below the threshold", () => {
+    const answer = (choice: string, probabilities: Record<string, number>) => choiceAnswer({ answers: { guard: { choice, probabilities } } }, "guard");
+    expect(guardVerdict(answer("injection", { injection: 0.9, measurement: 0.05 }))).toEqual({ verdict: "injection", measurementProbability: 0.05, blocked: true });
+    // An unsure verdict is let through at the default threshold of 0.3.
+    expect(guardVerdict(answer("off_topic_or_abuse", { off_topic_or_abuse: 0.45, measurement: 0.4 }))?.blocked).toBe(false);
+    expect(guardVerdict(answer("off_topic_or_abuse", { off_topic_or_abuse: 0.45, measurement: 0.4 }), 0.5)?.blocked).toBe(true);
+    expect(guardVerdict(answer("off_topic_or_abuse", { off_topic_or_abuse: 0.75, measurement: 0.25 }))?.blocked).toBe(true);
+    expect(guardVerdict(answer("measurement", { measurement: 0.4, injection: 0.35 }))?.blocked).toBe(false);
+    expect(guardVerdict(choiceAnswer({ answers: { guard: { choice: "measurement" } } }, "guard"))).toEqual({ verdict: "measurement", measurementProbability: 1, blocked: false });
+    expect(guardVerdict(answer("maybe", { maybe: 1 }))).toBeUndefined();
+    expect(guardVerdict(undefined)).toBeUndefined();
   });
 });
