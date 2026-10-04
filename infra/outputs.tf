@@ -3,7 +3,7 @@ output "gateway_id" {
   value       = local.gateway_id
 }
 
-output "jev_decisions_path" {
-  description = "Path after https://gateway.ai.cloudflare.com/v1/{account_id}/ that reaches OpenRouter's decision API."
-  value       = "${local.gateway_id}/${local.openrouter_provider_slug}/api/alpha/decisions"
+output "jev_systemone_path" {
+  description = "Path after https://gateway.ai.cloudflare.com/v1/{account_id}/ that reaches Jev through OpenRouter's System One API."
+  value       = "${local.gateway_id}/${local.openrouter_route_slug}/api/v1/systemone"
 }

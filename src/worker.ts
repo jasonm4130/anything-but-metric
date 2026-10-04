@@ -11,7 +11,7 @@ export interface Env {
   RATE_LIMITER: { limit(options: { key: string }): Promise<{ success: boolean }> };
   AI_ENABLED?: string;
   TURNSTILE_SECRET_KEY?: string;
-  /** Jev's Decisions API through the AI Gateway's custom OpenRouter route. */
+  /** Jev through the AI Gateway's custom OpenRouter route to OpenRouter's System One API. */
   JEV_DECISIONS_URL?: string;
   /** Gateway token; the gateway adds the stored OpenRouter key. */
   AI_GATEWAY_TOKEN?: string;
@@ -120,7 +120,7 @@ function workersAi(env: Env): Models["workersAi"] {
   };
 }
 
-/** Jev's Decisions API through the gateway's custom OpenRouter route; absent until configured. */
+/** Jev through the gateway's custom OpenRouter route; absent until configured. */
 function jev(env: Env): Models["jev"] {
   const url = env.JEV_DECISIONS_URL;
   const token = env.AI_GATEWAY_TOKEN;
