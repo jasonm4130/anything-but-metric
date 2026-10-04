@@ -1,6 +1,6 @@
 # How the converter works
 
-Anything But Metric is model-led. A creative model proposes things to compare with and estimates how big one of each is. Jev, TypeSafe's decision model, checks those estimates and chooses the comparison. Code does only the arithmetic: unit factors and one division. The reviewed catalogue in `src/data/` is the fallback when the creative step fails or refuses.
+Anything But Metric is model-led. A creative model proposes things to compare with and estimates how big one of each is. Jev, TypeSafe's decision model, checks those estimates and chooses the comparison. Code does only the arithmetic: unit factors and one division. The reviewed catalogue in `src/data/` is the fallback when the creative step fails or refuses, and a plain restatement of the measure covers what the catalogue cannot.
 
 ```mermaid
 flowchart TD
@@ -25,8 +25,8 @@ flowchart TD
   J3 -->|Accepted| R[Model answer]
   J3 -->|All rejected| F
   G -->|Refusal, timeout or nothing valid| F
-  F -->|No catalogue answer| X
-  R & F & TC & X --> L[(Replay log)]
+  F -->|No catalogue answer| P[Plain restatement]
+  R & F & P & TC & X --> L[(Replay log)]
 ```
 
 ## Contracts between stages
@@ -40,9 +40,9 @@ flowchart TD
 | Creative model | Proposes three or four references, each with a value, unit, basis, family and a line containing `{N}` | GLM 5.3 Flash, reasoning low, up to 15 seconds. It sees the measurement's decade, a theme, the families to avoid and the person's words as context, never the exact count |
 | Code | Converts units, divides, checks the 0.1–1,000 count range and the number-match gate, fills `{N}` | The only arithmetic. Money divides only by the same currency; counts by the counted item |
 | Jev review | One band question per valid proposal plus a pick question | Proposals more than one band (about ×3) from Jev's view are dropped; the pick decides among the rest |
-| Template | Catalogue menu for the same measure, Jev picks | Used on refusal, failure, deadline or when Jev rejects every proposal |
+| Template | Catalogue menu for the same measure, Jev picks | Used on refusal, failure, deadline or when Jev rejects every proposal. When the catalogue has no answer (money, counts, derived dimensions, out-of-catalogue scales), the result restates the measure plainly in SI units |
 
-The whole flow has a 25-second budget, inside the page's 30-second limit. A step that would overrun it is skipped and recorded as `skipped_deadline`. Without a configured Jev route the flow still answers: readings fall back to the default, estimates and proposals are used unchecked, and the result says so.
+The whole flow has a 25-second budget, inside the page's 30-second limit. A step that would overrun it is skipped and recorded as `skipped_deadline`. Without a configured Jev route, or when code cannot read Jev's reply (recorded as `unreadable`), the flow still answers: readings fall back to the default, estimates and proposals are used unchecked, and the result says so.
 
 ## The number-match gate
 
@@ -50,7 +50,7 @@ The creative model writes its line before the count exists, with one `{N}` place
 
 ## What can be measured
 
-Any Math.js unit, including dimensions outside the catalogue such as voltage, density or acceleration; money in 26 currencies, never converted between currencies; counts of named things, including food portions ("3 slices of pizza", "a dozen eggs"); and named quantities with no number, which the reader estimates and Jev checks. Temperatures, zero and AI-token counts use the catalogue only. Results with model estimates say so in the assumption and in the basis.
+Any Math.js unit, including dimensions outside the catalogue such as voltage, density or acceleration; money in 26 currencies, never converted between currencies; counts of named things, including food portions ("3 slices of pizza", "a dozen eggs"); and named quantities with no number, which the reader estimates and Jev checks. Temperatures and zero use the catalogue, then the plain restatement; AI-token counts use the catalogue only. Results with model estimates say so in the assumption and in the basis.
 
 ## Facts and creative compositions
 

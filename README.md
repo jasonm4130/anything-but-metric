@@ -33,7 +33,7 @@ A creative model invents the comparison and estimates how big one of its things 
 
 - **Model-led:** GLM 5.3 Flash on Workers AI reads prose and unfamiliar units and proposes references; Jev (`typesafe/jev-1.13` on OpenRouter) checks sizes and chooses.
 - **Wide units:** any Math.js unit, money in 26 currencies, counts of named things, and named quantities estimated on the spot.
-- **A reviewed fallback:** 109 sourced reference entries and 17 recipe mechanisms answer when the creative model refuses, fails or is overruled by Jev.
+- **A reviewed fallback:** 109 sourced reference entries and 17 recipe mechanisms answer when the creative model refuses, fails or is overruled by Jev; anything the catalogue cannot cover is restated plainly.
 - **Variety between submissions:** recent families are avoided while the page stays open, and each request gets a random theme.
 - **Replayable:** every verified question, model response, refusal and answer is kept for 30 days so prompts and models can be improved against real traffic.
 
