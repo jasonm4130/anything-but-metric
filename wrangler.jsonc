@@ -17,6 +17,7 @@
   "d1_databases": [{
     "binding": "REPLAY_LOG",
     "database_name": "anything-but-metric-replay",
+    "database_id": "b2e21c1b-7d56-4e19-b868-43f3ba5b7862",
     "migrations_dir": "migrations"
   }],
   // Daily prune of replay rows past the 30-day retention window.
