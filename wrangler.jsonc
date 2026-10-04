@@ -19,6 +19,8 @@
     "database_name": "anything-but-metric-replay",
     "migrations_dir": "migrations"
   }],
+  // Daily prune of replay rows past the 30-day retention window.
+  "triggers": { "crons": ["17 3 * * *"] },
   "ratelimits": [{
     "name": "RATE_LIMITER",
     "namespace_id": "1001",

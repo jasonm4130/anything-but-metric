@@ -64,7 +64,7 @@ The model-led Worker needs these once, before or with its first release:
    The deploy token needs **D1 Edit** for this. A Worker without the table still converts; each failed log write is reported in Workers Logs.
 4. Install the secrets with `npm run secrets:sync` (below). It sends `TURNSTILE_SECRET_KEY`, `JEV_DECISIONS_URL` and `AI_GATEWAY_TOKEN` when they are loaded.
 
-The replay log stores people's measurement text for 30 days. Keep the database private to the maintainer account.
+The replay log stores people's measurement text for 30 days; every write and a daily Cron Trigger delete rows within a day of turning 30 days old. Keep the database private to the maintainer account.
 
 ## Load configuration
 

@@ -40,7 +40,7 @@ flowchart TD
 | Creative model | Proposes three or four references, each with a value, unit, basis, family and a line containing `{N}` | GLM 5.3 Flash, reasoning low, up to 15 seconds. It sees the measurement's decade, a theme, the families to avoid and the person's words as context, never the exact count |
 | Code | Converts units, divides, checks the 0.1–1,000 count range and the number-match gate, fills `{N}` | The only arithmetic. Money divides only by the same currency; counts by the counted item |
 | Jev review | One band question per valid proposal plus a pick question | Proposals more than one band (about ×3) from Jev's view are dropped; the pick decides among the rest |
-| Template | Catalogue menu for the same measure, Jev picks | Used on refusal, failure, deadline or when Jev rejects every proposal. When the catalogue has no answer (money, counts, derived dimensions, out-of-catalogue scales), the result restates the measure plainly in SI units |
+| Template | Catalogue menu for the same measure, Jev picks | Used on refusal, failure, deadline or when Jev rejects every proposal. When the catalogue has no answer (money, counts, derived dimensions, out-of-catalogue scales), the result restates the measure plainly (physical measures in SI units) |
 
 The whole flow has a 25-second budget, inside the page's 30-second limit. A step that would overrun it is skipped and recorded as `skipped_deadline`. Without a configured Jev route, or when code cannot read Jev's reply (recorded as `unreadable`), the flow still answers: readings fall back to the default, estimates and proposals are used unchecked, and the result says so.
 
@@ -62,7 +62,7 @@ The browser keeps recent families in memory and sends them with the next request
 
 ## Replay log
 
-Every verified request writes one `abm-replay.v1` row to the D1 database `anything-but-metric-replay`: the measurement text, each stage's model, prompt version, input, raw response (bounded), outcome and latency, Jev's questions and answers, and the final answer or error. Refusals, rejections and fallbacks are logged as well as answers. The IP address and Turnstile token are not stored. Rows are deleted after 30 days. `npm run replay` pulls rows and rescores them with current code; see [Evaluation](evaluation.md#production-replay).
+Every verified request writes one `abm-replay.v1` row to the D1 database `anything-but-metric-replay`: the measurement text, each stage's model, prompt version, input, raw response (bounded), outcome and latency, Jev's questions and answers, and the final answer or error. Refusals, rejections and fallbacks are logged as well as answers. The IP address and Turnstile token are not stored. Rows are deleted within a day of turning 30 days old: every write and a daily Cron Trigger prune them. `npm run replay` pulls rows and rescores them with current code; see [Evaluation](evaluation.md#production-replay).
 
 Workers Logs gets one summary line per request with stage outcomes and latencies but no measurement text.
 

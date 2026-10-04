@@ -1,7 +1,7 @@
 import { validRecentFamilies } from "./lib/comparison-flow";
 import type { DecisionsRequest } from "./lib/jev-decisions";
 import { answer, StageFailure, type Models } from "./lib/model-flow";
-import { summaryLine, writeReplay, type ReplayDatabase } from "./lib/replay-log";
+import { pruneReplay, summaryLine, writeReplay, type ReplayDatabase } from "./lib/replay-log";
 
 export { interpretMeasurement } from "./lib/measurement";
 
@@ -186,5 +186,8 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === "/api/convert") return convert(request, env, context);
     return env.ASSETS.fetch(request);
+  },
+  async scheduled(controller: { scheduledTime: number }, env: Env, context: WaitUntil): Promise<void> {
+    context.waitUntil(pruneReplay(env.REPLAY_LOG, controller.scheduledTime));
   }
 };

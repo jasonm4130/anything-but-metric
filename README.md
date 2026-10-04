@@ -35,7 +35,7 @@ A creative model invents the comparison and estimates how big one of its things 
 - **Wide units:** any Math.js unit, money in 26 currencies, counts of named things, and named quantities estimated on the spot.
 - **A reviewed fallback:** 109 sourced reference entries and 17 recipe mechanisms answer when the creative model refuses, fails or is overruled by Jev; anything the catalogue cannot cover is restated plainly.
 - **Variety between submissions:** recent families are avoided while the page stays open, and each request gets a random theme.
-- **Replayable:** every verified question, model response, refusal and answer is kept for 30 days so prompts and models can be improved against real traffic.
+- **Replayable:** every verified question, model response, refusal and answer is kept for 30 days (deleted within a day after that) so prompts and models can be improved against real traffic.
 
 Astro builds the interface. A Cloudflare Worker serves the API and assets, Workers AI and OpenRouter supply inference through Cloudflare AI Gateway, D1 holds the replay log, and Math.js handles units. Turnstile and rate limits protect the public form. Skopia records visits and a conversion event containing only the dimension. The replay log does contain measurement text and answers; it does not contain IP addresses. See [How it works](docs/architecture.md).
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ambiguousReadings, count, describeMeasure, localCurrency, physical, referenceRatio } from "../src/lib/measures";
 import { amountMatches, readMeasure, writtenNumbers } from "../src/lib/reader";
-import { serialiseRecord, writeReplay } from "../src/lib/replay-log";
+import { pruneReplay, serialiseRecord, writeReplay } from "../src/lib/replay-log";
 import type { ReplayRecord } from "../src/lib/model-flow";
 
 const ratio = (check: ReturnType<typeof referenceRatio>) => "count" in check ? check.count : check.reason;
@@ -94,15 +94,16 @@ describe("replay log", () => {
     expect(JSON.parse(text)).toMatchObject({ truncated: true, stages: [{ response: "[dropped: record too large]", request: "x".repeat(60_000) }] });
   });
 
-  it("writes one row, prunes old rows occasionally and never throws", async () => {
+  it("writes one row, prunes rows past retention on every write and never throws", async () => {
     const queries: unknown[][] = [];
     const db = { prepare: (query: string) => ({ bind: (...values: unknown[]) => ({ run: async () => { queries.push([query, ...values]); } }) }) };
-    await writeReplay(db, record, 0.5);
-    expect(queries).toHaveLength(1);
-    await writeReplay(db, record, 0);
-    expect(queries.at(-1)).toEqual(["DELETE FROM conversions WHERE created_at < ?", "2026-09-04T00:00:00.000Z"]);
+    await writeReplay(db, record);
+    expect(queries).toHaveLength(2);
+    expect(queries[0][0]).toMatch(/^INSERT INTO conversions/);
+    expect(queries[1]).toEqual(["DELETE FROM conversions WHERE created_at < ?", "2026-09-04T00:00:00.000Z"]);
     const failing = { prepare: () => { throw new Error("no such table"); } };
     await expect(writeReplay(failing, record)).resolves.toBeUndefined();
+    await expect(pruneReplay(failing, Date.parse(record.at))).resolves.toBeUndefined();
     await expect(writeReplay(undefined, record)).resolves.toBeUndefined();
   });
 });

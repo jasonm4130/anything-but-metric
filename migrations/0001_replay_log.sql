@@ -1,5 +1,5 @@
 -- One row per verified conversion: the question, every model stage and the answer.
--- See src/lib/replay-log.ts. Rows older than the retention window are pruned by the Worker.
+-- See src/lib/replay-log.ts. Rows older than the retention window are pruned by the Worker on every write and by a daily cron.
 CREATE TABLE IF NOT EXISTS conversions (
   request_id TEXT PRIMARY KEY,
   created_at TEXT NOT NULL,

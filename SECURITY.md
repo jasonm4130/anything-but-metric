@@ -6,6 +6,6 @@ The public API requires server-side Turnstile verification and applies input and
 
 Models propose comparisons and estimate sizes; Jev checks them; code owns every displayed number and the arithmetic, and renders model text only as plain text after a number-match check. Model estimates are labelled as estimates. None of this makes measurements suitable for safety-critical or engineering use.
 
-Verified requests, including the measurement text and model responses, are kept in a private D1 replay log for 30 days to improve prompts and models. IP addresses and Turnstile tokens are not stored there.
+Verified requests, including the measurement text and model responses, are kept in a private D1 replay log for 30 days to improve prompts and models; rows are deleted within a day of turning 30 days old. IP addresses and Turnstile tokens are not stored there.
 
 Only the current `main` branch is maintained. This project has no guaranteed security response time or paid bug-bounty program.

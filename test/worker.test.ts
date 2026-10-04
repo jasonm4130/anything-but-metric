@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { convert, type Env } from "../src/worker";
+import worker, { convert, type Env } from "../src/worker";
 
 const bus = { label: "double-decker buses", singular: "double-decker bus", value: 12, unit: "tonne", basis: "A London bus weighs about 12 t empty.", family: "vehicles", line: "That's {N} double-decker buses parked nose to tail." };
 const jevUrl = "https://gateway.ai.cloudflare.com/v1/account/anything-but-metric/custom-openrouter-api/api/alpha/decisions";
@@ -332,5 +332,18 @@ describe("/api/convert", () => {
     disabled.AI_ENABLED = "false";
     expect((await convert(request({ measurement: "2 km" }), disabled)).status).toBe(503);
     expect(disabled.aiRun).not.toHaveBeenCalled();
+  });
+});
+
+describe("scheduled replay prune", () => {
+  it("deletes replay rows older than 30 days on the daily cron, even with no traffic", async () => {
+    const bindings = env();
+    const pending: Promise<unknown>[] = [];
+    await worker.scheduled({ scheduledTime: Date.parse("2026-10-04T03:17:00.000Z") }, bindings, { waitUntil: promise => { pending.push(promise); } });
+    await Promise.all(pending);
+    expect(bindings.rows).toEqual([["DELETE FROM conversions WHERE created_at < ?", "2026-09-04T03:17:00.000Z"]]);
+    const failing = { ...bindings, REPLAY_LOG: { prepare: () => { throw new Error("no such table"); } } };
+    await worker.scheduled({ scheduledTime: Date.now() }, failing, { waitUntil: promise => { pending.push(promise); } });
+    await expect(Promise.all(pending)).resolves.toBeDefined();
   });
 });
