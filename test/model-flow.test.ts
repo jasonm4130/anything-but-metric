@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { answer, creativeModel, StageFailure, type Models } from "../src/lib/model-flow";
-import { readerModel } from "../src/lib/reader";
+import { readerModel, readerPrompt } from "../src/lib/reader";
 import type { DecisionsRequest } from "../src/lib/jev-decisions";
 
 const bus = { label: "double-decker buses", singular: "double-decker bus", value: 12, unit: "tonne", basis: "A London bus weighs about 12 t empty.", family: "vehicles", line: "That's {N} double-decker buses parked nose to tail." };
@@ -8,12 +8,12 @@ const whale = { label: "blue whales", singular: "blue whale", value: 150, unit: 
 const proposals = (...items: object[]) => ({ response: { proposals: items } });
 const options = { requestId: "req-1", seed: 7, now: () => 0, at: "2026-10-04T00:00:00.000Z" };
 
-/** Fake Workers AI: reader and creative responses by model; anything else is a provider failure. */
+/** Fake Workers AI: reader and creative responses by system prompt; anything else is a provider failure. */
 function models(responses: { reader?: unknown[]; creative?: unknown[] }, jev?: (request: DecisionsRequest) => unknown): Models & { workersAi: ReturnType<typeof vi.fn>; jevCalls: DecisionsRequest[] } {
-  const queues = { [readerModel]: [...(responses.reader ?? [])], [creativeModel]: [...(responses.creative ?? [])] } as Record<string, unknown[]>;
+  const queues = { reader: [...(responses.reader ?? [])], creative: [...(responses.creative ?? [])] };
   const jevCalls: DecisionsRequest[] = [];
-  const workersAi = vi.fn(async (model: string) => {
-    const next = queues[model]?.shift();
+  const workersAi = vi.fn(async (_model: string, body: Record<string, unknown>) => {
+    const next = queues[(body.messages as { content: string }[])[0].content === readerPrompt ? "reader" : "creative"].shift();
     if (next instanceof Error) throw next;
     if (next === undefined) throw new StageFailure("provider", "no fake response");
     return next;

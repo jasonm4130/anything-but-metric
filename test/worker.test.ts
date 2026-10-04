@@ -115,12 +115,12 @@ describe("/api/convert", () => {
     expect(bindings.aiRun).not.toHaveBeenCalled();
   });
 
-  it("uses the reader for prose with thinking disabled, and rejects a changed number", async () => {
+  it("uses the reader for prose at low reasoning effort, and rejects a changed number", async () => {
     const reading = { kind: "physical", amount: 2, written: "metresish", perUnit: 1, standardUnit: "m", estimated: false, item: "", items: "", subject: "" };
     const accepted = env([reading, { proposals: [{ ...bus, value: 0.5, unit: "m", line: "{N} double-decker buses, nose to tail." }] }]);
     expect((await convert(request({ measurement: "2 metresish" }), accepted)).status).toBe(200);
-    expect(accepted.aiRun.mock.calls.map(([model]) => model)).toEqual(["@cf/google/gemma-4-26b-a4b-it", "@cf/zai-org/glm-5.3-flash"]);
-    expect(accepted.aiRun.mock.calls[0][1]).toMatchObject({ temperature: 0, chat_template_kwargs: { enable_thinking: false }, messages: [{ role: "system" }, { role: "user", content: "2 metresish" }] });
+    expect(accepted.aiRun.mock.calls.map(([model]) => model)).toEqual(["@cf/zai-org/glm-5.3-flash", "@cf/zai-org/glm-5.3-flash"]);
+    expect(accepted.aiRun.mock.calls[0][1]).toMatchObject({ temperature: 0, reasoning_effort: "low", max_tokens: 600, messages: [{ role: "system" }, { role: "user", content: "2 metresish" }] });
     const changed = env([{ ...reading, amount: 3 }]);
     expect((await convert(request({ measurement: "2 metresish" }), changed)).status).toBe(422);
     expect(changed.aiRun).toHaveBeenCalledTimes(1);

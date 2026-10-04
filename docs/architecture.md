@@ -34,9 +34,9 @@ flowchart TD
 | Stage | Responsibility | Boundary |
 | --- | --- | --- |
 | Local reader | Money symbols, codes and words; supported units, typos, fractions, sums; ambiguous unit words | Preserves the full input; rejects invalid values without a model call |
-| Reader model | Prose and units code does not know: the number as written, the kind (physical, money or count) and what one written unit equals | Gemma 4 26B A4B with thinking off, 300 output tokens, six seconds. Its number must be one the person typed. Code's own factor wins for units it knows |
+| Reader model | Prose and units code does not know: the number as written, the kind (physical, money or count) and what one written unit equals | GLM 5.3 Flash at low reasoning effort, 600 output tokens, six seconds. Its number must be one the person typed. Code's own factor wins for units it knows |
 | Jev reading | Picks among readings of `pounds`, `oz`, `ton`, `gallon`, `pint` and `cup` | One choice question; Math.js's default reading if Jev is unavailable |
-| Jev estimate | Checks a model-supplied unit factor or a named quantity ("the height of Everest") | Seven half-decade bands; a value more than one band off is replaced with the centre of Jev's band |
+| Jev estimate | Checks any unit factor code did not supply and any named quantity ("the height of Everest") | Seven half-decade bands; a value more than one band off is replaced with the centre of Jev's band |
 | Creative model | Proposes three or four references, each with a value, unit, basis, family and a line containing `{N}` | GLM 5.3 Flash, reasoning low, up to 15 seconds. It sees the measurement's decade, a theme, the families to avoid and the person's words as context, never the exact count |
 | Code | Converts units, divides, checks the 0.1–1,000 count range and the number-match gate, fills `{N}` | The only arithmetic. Money divides only by the same currency; counts by the counted item |
 | Jev review | One band question per valid proposal plus a pick question | Proposals more than one band (about ×3) from Jev's view are dropped; the pick decides among the rest |

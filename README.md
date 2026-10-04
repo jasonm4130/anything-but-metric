@@ -31,7 +31,7 @@ See [AI-token estimates](docs/ai-tokens.md) for the measured source, arithmetic 
 
 A creative model invents the comparison and estimates how big one of its things is. Jev, a decision model, checks that estimate and picks the best candidate. Code does the arithmetic and writes the number into the sentence, so the model never states the count itself.
 
-- **Model-led:** GLM 5.3 Flash on Workers AI proposes references; Gemma 4 reads prose and unfamiliar units; Jev (`typesafe/jev-1.13` on OpenRouter) checks sizes and chooses.
+- **Model-led:** GLM 5.3 Flash on Workers AI reads prose and unfamiliar units and proposes references; Jev (`typesafe/jev-1.13` on OpenRouter) checks sizes and chooses.
 - **Wide units:** any Math.js unit, money in 26 currencies, counts of named things, and named quantities estimated on the spot.
 - **A reviewed fallback:** 109 sourced reference entries and 17 recipe mechanisms answer when the creative model refuses, fails or is overruled by Jev.
 - **Variety between submissions:** recent families are avoided while the page stays open, and each request gets a random theme.
@@ -59,7 +59,7 @@ npm run eval:corpus   # Frozen acceptance cases, variety and offline evaluation 
 npm run build         # Static production assets
 ```
 
-The current baseline is **294 tests and 30 development acceptance cases passing**. These checks verify parsing, arithmetic, output contracts, protection and coverage. They are not a promise that every comparison is delightful or every possible unit is supported. See [evaluation notes](docs/evaluation.md).
+The current baseline is **317 tests and 30 development acceptance cases passing**. These checks verify parsing, arithmetic, output contracts, protection and coverage. They are not a promise that every comparison is delightful or every possible unit is supported. See [evaluation notes](docs/evaluation.md).
 
 `npm run eval:live` is a separate, opt-in harness for paid model evaluation. It refuses to run without `--live`, never runs in CI, enforces spend budgets and keeps a replayable log of every request and response outside Git.
 

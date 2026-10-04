@@ -181,7 +181,7 @@ async function interpret(context: Context): Promise<{ measure?: Measure; status?
     return measure ? { measure } : { status: 422, error: messages.unrecognised };
   }
 
-  const body = { messages: [{ role: "system", content: readerPrompt }, { role: "user", content: input }], response_format: { type: "json_schema", json_schema: readerSchema }, temperature: 0, max_tokens: 300, ...readerOptions };
+  const body = { messages: [{ role: "system", content: readerPrompt }, { role: "user", content: input }], response_format: { type: "json_schema", json_schema: readerSchema }, temperature: 0, ...readerOptions };
   const call = await timed(context, () => context.models.workersAi(readerModel, body, budgets.readerMs));
   if (call.failure) {
     context.stages.push({ stage: "reader", model: readerModel, promptVersion: readerPromptVersion, latencyMs: call.latencyMs, outcome: call.failure.reason, request: input, response: bounded(call.failure.response) });

@@ -72,6 +72,7 @@ describe("reader", () => {
     expect(readMeasure(read({ amount: 5, written: "km", perUnit: 999, standardUnit: "m" }), "5 km-ish")).toMatchObject({ outcome: "ok", checkEstimate: false, measure: { quantity: 5, unit: "km" } });
     expect(readMeasure(read({ amount: 3, written: "furlongs", perUnit: 201.168, standardUnit: "m" }), "3 furlongs")).toMatchObject({ outcome: "ok", checkEstimate: true, measure: { unit: "m", estimate: { perUnit: 201.168, written: "furlongs" } } });
     expect(readMeasure(read({ amount: 3, written: "dozen eggs", kind: "count", perUnit: 12, standardUnit: "count", item: "egg", items: "eggs" }), "3 dozen eggs")).toMatchObject({ outcome: "ok", measure: { kind: "count", quantity: 36, items: "eggs" }, checkEstimate: true });
+    expect(readMeasure(read({ amount: 60, written: "bpm", perUnit: 1, standardUnit: "Hz" }), "60 bpm")).toMatchObject({ outcome: "ok", checkEstimate: true });
     expect(readMeasure(read({ amount: 20, kind: "currency", written: "quid", standardUnit: "gbp" }), "20 quid")).toMatchObject({ outcome: "ok", measure: { kind: "currency", unit: "GBP", quantity: 20 } });
   });
 
