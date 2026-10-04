@@ -13,6 +13,14 @@
   "ai": { "binding": "AI" },
   "limits": { "cpu_ms": 20 },
   "vars": { "AI_ENABLED": "true" },
+  // Replay log of verified conversions; see docs/deployment.md to create it and add its database_id.
+  "d1_databases": [{
+    "binding": "REPLAY_LOG",
+    "database_name": "anything-but-metric-replay",
+    "migrations_dir": "migrations"
+  }],
+  // Daily prune of replay rows past the 30-day retention window.
+  "triggers": { "crons": ["17 3 * * *"] },
   "ratelimits": [{
     "name": "RATE_LIMITER",
     "namespace_id": "1001",

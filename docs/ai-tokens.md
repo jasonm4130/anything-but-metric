@@ -12,7 +12,7 @@ An unspecified count such as `1M AI tokens` is visibly treated as generated/outp
 
 ## The calculation
 
-For one million assumed output tokens, the scenario energies are 151,000 and 312,000 joules, approximately 41.9–86.7 Wh. A reference appliance drawing 1,600 W continuously would run for 94.375–195 seconds, displayed as about 1.57–3.25 minutes. Both endpoints use the same appliance and formula; the selector cannot change them.
+For one million assumed output tokens, the scenario energies are 151,000 and 312,000 joules, approximately 41.9–86.7 Wh. A reference appliance drawing 1,600 W continuously would run for 94.375–195 seconds, displayed as about 1.57–3.25 minutes. Both endpoints use the same appliance and formula; Jev chooses among such comparisons but cannot change them.
 
 A one-watt light is an explicitly imagined comparison prop for single-token inputs. It is not a measured typical lamp. The definition of a watt supplies the relationship between energy and duration; the chosen lamp power remains an assumption. [NIST definition](https://www.nist.gov/glossary-term/34606).
 

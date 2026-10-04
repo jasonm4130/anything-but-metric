@@ -13,6 +13,8 @@
     "eval:corpus": "node scripts/check-comparison-corpus.mjs && node scripts/eval-offline-sweeps.mjs",
     "eval:sweeps": "node scripts/eval-offline-sweeps.mjs",
     "eval:live": "node scripts/live-eval.mjs",
+    "replay": "node scripts/replay-log.mjs",
+    "db:migrate": "wrangler d1 migrations apply anything-but-metric-replay --remote",
     "secrets:sync": "node scripts/configure-secrets.mjs"
   },
   "devDependencies": {
@@ -27,7 +29,7 @@
   "dependencies": {
     "mathjs": "^15.2.0"
   },
-  "description": "Playful measurement comparisons with code-owned arithmetic and a small model selector.",
+  "description": "Playful measurement comparisons: a creative model proposes, Jev checks and chooses, code does the arithmetic.",
   "engines": {
     "node": ">=24 <25"
   },

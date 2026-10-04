@@ -12,14 +12,14 @@
 
 </div>
 
-Enter a measurement, press **Convert**, and get one playful comparison. Typos welcome. No chat history, follow-up interrogation or compulsory punchline.
+Enter a measurement, press **Convert**, and get one playful comparison. Typos welcome, and so are money (`$50`), counts and food portions (`3 slices of pizza`), odd units (`2 fortnights`) and things with no number at all (`the height of Everest`). No chat history, follow-up interrogation or compulsory punchline.
 
 | You enter | One possible answer |
 | --- | --- |
 | `144 jouls` | About 83 iPhone 17s lifted onto one-metre shelves. |
 | `2 PB` | Print it double-sided: a paper stack about 8.3 Earths tall. |
 
-These examples were checked on the live site. Results vary; expand **Show the questionable maths** to see the assumptions and sources.
+These examples were checked on the live site before the model-led flow. Results vary; expand **Show the questionable maths** to see the estimate, the arithmetic and any sources.
 
 ## AI tokens count too
 
@@ -27,17 +27,17 @@ Try **`1M AI tokens`**, **`250k output tokens`** or even **`1 AI token`** in the
 
 See [AI-token estimates](docs/ai-tokens.md) for the measured source, arithmetic and treatment of input/cached tokens.
 
-## Silly comparisons, grounded arithmetic
+## Silly comparisons, honest arithmetic
 
-The model chooses an image from a menu that code has already calculated. It cannot change a reference's size or write its own answer into the result.
+A creative model invents the comparison and estimates how big one of its things is. Jev, a decision model, checks that estimate and picks the best candidate. Code does the arithmetic and writes the number into the sentence, so the model never states the count itself.
 
-- **109 reference entries:** objects, landmarks, appliances, media formats and full animal weight ranges.
-- **414 comparison recipes** reached by the current magnitude sweep, using 17 mechanisms.
-- **Variety between submissions:** recent source families are avoided while the page stays open.
-- **One small model call for ordinary inputs:** Llama 3.2 3B chooses an offered comparison; unresolved prose gets a separate extraction call.
-- **Useful fallback:** if selection fails, a valid menu item still works. Unsupported measurements and scales get an explicit message.
+- **Model-led:** GLM 5.3 Flash on Workers AI reads prose and unfamiliar units and proposes references; Jev (`typesafe/jev-1.13` on OpenRouter) checks sizes and chooses.
+- **Wide units:** any Math.js unit, money in 26 currencies, counts of named things, and named quantities estimated on the spot.
+- **A reviewed fallback:** 109 sourced reference entries and 17 recipe mechanisms answer when the creative model refuses, fails or is overruled by Jev; anything the catalogue cannot cover is restated plainly.
+- **Variety between submissions:** recent families are avoided while the page stays open, and each request gets a random theme.
+- **Replayable:** every verified question, model response, refusal and answer is kept for 30 days (deleted within a day after that) so prompts and models can be improved against real traffic.
 
-Astro builds the interface. A Cloudflare Worker serves the API and assets, Workers AI supplies inference, and Math.js handles units. Turnstile and rate limits protect the public form. Skopia records visits and a conversion event containing only the dimension; measurement text and answers are not included in that event.
+Astro builds the interface. A Cloudflare Worker serves the API and assets, Workers AI and OpenRouter supply inference through Cloudflare AI Gateway, D1 holds the replay log, and Math.js handles units. Turnstile and rate limits protect the public form. Skopia records visits and a conversion event containing only the dimension. The replay log does contain measurement text and answers; it does not contain IP addresses. See [How it works](docs/architecture.md).
 
 ## Run it locally
 
@@ -50,7 +50,7 @@ npm ci
 npm run dev
 ```
 
-This starts the **interface preview**. Conversions need the Worker, Workers AI and a correctly configured Turnstile widget; the Astro dev server alone does not serve `/api/convert`. All automated checks below run without credentials or paid inference.
+This starts the **interface preview**. Conversions need the Worker, Workers AI, the Jev route and a correctly configured Turnstile widget; the Astro dev server alone does not serve `/api/convert`. All automated checks below run without credentials or paid inference.
 
 ```sh
 npm test              # Worker and library tests
@@ -59,7 +59,7 @@ npm run eval:corpus   # Frozen acceptance cases, variety and offline evaluation 
 npm run build         # Static production assets
 ```
 
-The current baseline is **294 tests and 30 development acceptance cases passing**. These checks verify parsing, arithmetic, output contracts, protection and coverage. They are not a promise that every comparison is delightful or every possible unit is supported. See [evaluation notes](docs/evaluation.md).
+The current baseline is **317 tests and 30 development acceptance cases passing**. These checks verify parsing, arithmetic, output contracts, protection and coverage. They are not a promise that every comparison is delightful or every possible unit is supported. See [evaluation notes](docs/evaluation.md).
 
 `npm run eval:live` is a separate, opt-in harness for paid model evaluation. It refuses to run without `--live`, never runs in CI, enforces spend budgets and keeps a replayable log of every request and response outside Git.
 

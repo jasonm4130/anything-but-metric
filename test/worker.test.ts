@@ -1,10 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import finalist from "../evals/delight-selection-finalist-28.json";
-import { convert, type Env } from "../src/worker";
+import worker, { convert, type Env } from "../src/worker";
 
-const parsed = { recognized: true, quantity: 144, sourceUnit: "J" };
-const reference = { referenceQuantity: 1.5, referenceUnit: "J", referenceLabel: "apples lifted onto counters", assumption: "lifting one apple about a metre takes roughly this much energy" };
-const chooseFirst = (_model: string, input: { response_format: { json_schema: { properties: { packetId: { enum: string[] } } } } }) => ({ response: { packetId: input.response_format.json_schema.properties.packetId.enum[0] } });
+const bus = { label: "double-decker buses", singular: "double-decker bus", value: 12, unit: "tonne", basis: "A London bus weighs about 12 t empty.", family: "vehicles", line: "That's {N} double-decker buses parked nose to tail." };
+const jevUrl = "https://gateway.ai.cloudflare.com/v1/account/anything-but-metric/custom-openrouter-api/api/alpha/decisions";
 
 function request(body: unknown, headers: Record<string, string> = {}) {
   return new Request("https://anythingbutmetric.wtf/api/convert", {
@@ -15,45 +13,48 @@ function request(body: unknown, headers: Record<string, string> = {}) {
 }
 
 const fetchMock = vi.fn();
+const turnstileOk = () => Promise.resolve(new Response(JSON.stringify({ success: true, hostname: "anythingbutmetric.wtf", action: "convert" })));
 
-function env(responses: unknown[] = [undefined], allowed = true): Env & { aiRun: ReturnType<typeof vi.fn> } {
-  const aiRun = vi.fn();
-  for (const response of responses) { if (response === undefined) aiRun.mockImplementationOnce(chooseFirst); else aiRun.mockResolvedValueOnce({ response }); }
-  return { AI_ENABLED: "true", AI: { run: aiRun }, ASSETS: { fetch: vi.fn() }, RATE_LIMITER: { limit: vi.fn().mockResolvedValue({ success: allowed }) }, TURNSTILE_SECRET_KEY: "test-secret", aiRun };
+/** Each queued response answers one Workers AI call; an unqueued call fails like a provider error. */
+function env(responses: unknown[] = [], allowed = true): Env & { aiRun: ReturnType<typeof vi.fn>; rows: unknown[][] } {
+  const aiRun = vi.fn().mockRejectedValue(new Error("no fake response"));
+  for (const response of responses) aiRun.mockResolvedValueOnce({ response });
+  const rows: unknown[][] = [];
+  const REPLAY_LOG = { prepare: vi.fn((query: string) => ({ bind: (...values: unknown[]) => ({ run: async () => { rows.push([query, ...values]); } }) })) };
+  return { AI_ENABLED: "true", AI: { run: aiRun }, ASSETS: { fetch: vi.fn() }, RATE_LIMITER: { limit: vi.fn().mockResolvedValue({ success: allowed }) }, TURNSTILE_SECRET_KEY: "test-secret", REPLAY_LOG, aiRun, rows };
 }
 
 describe("/api/convert", () => {
   beforeEach(() => {
-    fetchMock.mockImplementation(() => Promise.resolve(new Response(JSON.stringify({ success: true, hostname: "anythingbutmetric.wtf", action: "convert" }))));
+    fetchMock.mockImplementation(turnstileOk);
     vi.stubGlobal("fetch", fetchMock);
   });
   afterEach(() => { fetchMock.mockReset(); vi.unstubAllGlobals(); });
 
-  it("bypasses the parser for an explicit measurement and runs the creative reference call through the gateway", async () => {
-    const bindings = env();
-    const response = await convert(request({ measurement: "144 jouls" }), bindings);
+  it("runs the creative model through the gateway for an explicit measurement", async () => {
+    const bindings = env([{ proposals: [bus] }]);
+    const response = await convert(request({ measurement: "40 tonnes" }), bindings);
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({ result: { dimension: "energy", packetId: expect.any(String), interpretation: "144 J" } });
+    await expect(response.json()).resolves.toMatchObject({ result: { origin: "model", dimension: "mass", interpretation: "40 tonne", headline: "That's 3.33 double-decker buses parked nose to tail." } });
     expect(bindings.aiRun).toHaveBeenCalledTimes(1);
-    expect(bindings.aiRun).toHaveBeenCalledWith("@cf/meta/llama-3.2-3b-instruct", expect.objectContaining({ temperature: 0.2, max_tokens: 256, response_format: expect.objectContaining({ type: "json_schema" }) }), expect.objectContaining({ gateway: { id: "anything-but-metric", skipCache: true } }));
+    expect(bindings.aiRun).toHaveBeenCalledWith("@cf/zai-org/glm-5.3-flash", expect.objectContaining({ reasoning_effort: "low", response_format: expect.objectContaining({ type: "json_schema" }) }), expect.objectContaining({ gateway: { id: "anything-but-metric", skipCache: true }, signal: expect.any(AbortSignal) }));
   });
 
-  it("converts AI-token counts locally with explicit estimate metadata and one selector call", async () => {
+  it("converts AI-token counts locally with explicit estimate metadata and no model call", async () => {
     const bindings = env();
     const response = await convert(request({ measurement: "1M AI tokens" }), bindings);
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({ result: { dimension: "ai-tokens", quantity: 1e6, sourceUnit: "output tokens", estimate: { energyJoules: { min: 151000, max: 312000 } } } });
-    expect(bindings.aiRun).toHaveBeenCalledTimes(1);
-    expect(bindings.aiRun.mock.calls[0][0]).toBe("@cf/meta/llama-3.2-3b-instruct");
+    expect(bindings.aiRun).not.toHaveBeenCalled();
   });
 
-  it("keeps compact token counts out of the ordinary measurement parser", async () => {
+  it("keeps compact token counts out of the ordinary measurement reader", async () => {
     const bindings = env();
     const response = await convert(request({ measurement: "100tokens" }), bindings);
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({ result: { dimension: "ai-tokens", quantity: 100, estimate: expect.any(Object) } });
-    expect(bindings.aiRun.mock.calls.every(([model]) => model === "@cf/meta/llama-3.2-3b-instruct")).toBe(true);
-    const rejected = env([{ recognized: true, quantity: 100, sourceUnit: "J" }]);
+    expect(bindings.aiRun).not.toHaveBeenCalled();
+    const rejected = env();
     expect((await convert(request({ measurement: "100totaltokens" }), rejected)).status).toBe(422);
     expect(rejected.aiRun).not.toHaveBeenCalled();
   });
@@ -66,14 +67,41 @@ describe("/api/convert", () => {
     expect(bindings.aiRun).not.toHaveBeenCalled();
   });
 
-  it("keeps a labelled token estimate when the selector fails", async () => {
-    const bindings = env([{ packetId: "invented", energyJoules: 1 }]);
-    const response = await convert(request({ measurement: "1M output tokens" }), bindings);
+  it("asks Jev through the gateway's OpenRouter route with only the gateway token", async () => {
+    const bindings = { ...env([{ proposals: [bus, { ...bus, label: "blue whales", singular: "blue whale", value: 150, family: "sea life", line: "{N} blue whales." }] }]), JEV_DECISIONS_URL: jevUrl, AI_GATEWAY_TOKEN: "gateway-token" };
+    fetchMock.mockImplementationOnce(turnstileOk).mockImplementationOnce(() => Promise.resolve(new Response("rate limited", { status: 429 })));
+    const response = await convert(request({ measurement: "40 tonnes" }), bindings);
     expect(response.status).toBe(200);
-    const { result } = await response.json() as { result: { packetId: string; estimate: { energyJoules: { min: number; max: number } } } };
-    expect(result.packetId).toMatch(/^ai-tokens:/);
-    expect(result.estimate.energyJoules).toEqual({ min: 151000, max: 312000 });
-    expect(bindings.aiRun).toHaveBeenCalledTimes(1);
+    await expect(response.json()).resolves.toMatchObject({ result: { origin: "model" } });
+    const [url, init] = fetchMock.mock.calls[1];
+    expect(url).toBe(jevUrl);
+    expect(init.headers).toEqual({ "content-type": "application/json", "cf-aig-authorization": "Bearer gateway-token" });
+    expect(JSON.parse(init.body)).toMatchObject({ model: "typesafe/jev-1.13", questions: { band_1: { type: "choice" }, band_2: { type: "choice" }, pick: { type: "choice" } } });
+    const record = JSON.parse(bindings.rows[0][8] as string);
+    expect(record.stages.at(-1)).toMatchObject({ stage: "jev-review", outcome: "rate_limited", response: { status: 429 } });
+  });
+
+  it("logs every verified question and response for replay, without the IP or Turnstile token", async () => {
+    const waitUntil = vi.fn();
+    const bindings = env([{ proposals: [bus] }]);
+    await convert(request({ measurement: "40 tonnes" }), bindings, { waitUntil });
+    expect(waitUntil).toHaveBeenCalledTimes(1);
+    await waitUntil.mock.calls[0][0];
+    const [query, requestId, createdAt, outcome, status, refused, , input, record] = bindings.rows[0];
+    expect(query).toMatch(/^INSERT INTO conversions/);
+    expect({ requestId, outcome, status, refused, input }).toEqual({ requestId: expect.any(String), outcome: "model", status: 200, refused: 0, input: "40 tonnes" });
+    expect(createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(JSON.parse(record as string)).toMatchObject({ schema: "abm-replay.v1", stages: [{ stage: "creative", outcome: "ok", request: expect.stringContaining("40 tonnes"), response: { response: { proposals: [bus] } } }, { stage: "jev-review", outcome: "unavailable" }] });
+    expect(record).not.toMatch(/203\.0\.113\.8|verified-token|test-secret/);
+  });
+
+  it("logs refused and rejected questions too", async () => {
+    const bindings = env([{ kind: "none", amount: 1, written: "", perUnit: 1, standardUnit: "m", estimated: false, item: "", items: "", subject: "" }]);
+    expect((await convert(request({ measurement: "the lab sneezed" }), bindings)).status).toBe(422);
+    expect(bindings.rows[0]).toEqual(expect.arrayContaining(["rejected", 422, 0, "the lab sneezed"]));
+    const refused = env(["I'm sorry, but I can't help with that."]);
+    expect((await convert(request({ measurement: "the weight of a dead body" }), refused)).status).toBe(422);
+    expect(refused.rows[0]).toEqual(expect.arrayContaining(["rejected", 422, 1]));
   });
 
   it("rejects unsupported input/cached token classes without inference and still verifies tokens first", async () => {
@@ -87,41 +115,13 @@ describe("/api/convert", () => {
     expect(bindings.aiRun).not.toHaveBeenCalled();
   });
 
-  it("uses the frozen selector prompt and offers only immutable packet IDs", async () => {
-    const bindings = env();
-    const response = await convert(request({ measurement: "144 jouls" }), bindings);
-    const [model, input, options] = bindings.aiRun.mock.calls[0];
-    expect(model).toBe(finalist.model);
-    expect(input.messages[0]).toEqual({role:"system",content:finalist.systemPrompt});
-    const context = JSON.parse(input.messages[1].content);
-    expect(context.originalMeasurement).toBe("144 jouls");
-    expect(context.packets.length).toBeGreaterThan(0);
-    expect(input.response_format.json_schema.required).toEqual(["packetId"]);
-    expect(input.response_format.json_schema.additionalProperties).toBe(false);
-    expect(options.gateway.id).toBe("anything-but-metric");
-    const payload = await response.json() as {result:{headline:string;packetId:string}};
-    const chosen = context.packets.find((p:{id:string})=>p.id===payload.result.packetId);
-    expect(payload.result.headline).toBe(chosen.headline);
-  });
-
-  it("rejects selector output that tries to replace facts and returns an offered fallback", async () => {
-    const bindings = env();
-    bindings.aiRun.mockReset();
-    bindings.aiRun.mockImplementationOnce((model,input)=>({response:{...chooseFirst(model,input).response,quantity:2,sourceUnit:"L",headline:"model invention"}}));
-    const response = await convert(request({measurement:"144 jouls"}),bindings);
-    const payload = await response.json() as {result:{quantity:number;sourceUnit:string;headline:string;packetId:string}};
-    expect(payload.result).toMatchObject({quantity:144,sourceUnit:"J"});
-    expect(payload.result.headline).not.toBe("model invention");
-    const offered = JSON.parse(bindings.aiRun.mock.calls[0][1].messages[1].content).packets;
-    expect(offered.some((p:{id:string})=>p.id===payload.result.packetId)).toBe(true);
-    expect(bindings.aiRun).toHaveBeenCalledTimes(1);
-  });
-
-  it("uses the parser for an unknown literal but rejects a changed quantity", async () => {
-    const accepted = env([{ recognized: true, quantity: 2, sourceUnit: "m" }, { ...reference, referenceUnit: "m" }]);
+  it("uses the reader for prose at low reasoning effort, and rejects a changed number", async () => {
+    const reading = { kind: "physical", amount: 2, written: "metresish", perUnit: 1, standardUnit: "m", estimated: false, item: "", items: "", subject: "" };
+    const accepted = env([reading, { proposals: [{ ...bus, value: 0.5, unit: "m", line: "{N} double-decker buses, nose to tail." }] }]);
     expect((await convert(request({ measurement: "2 metresish" }), accepted)).status).toBe(200);
-    expect(accepted.aiRun).toHaveBeenCalledTimes(2);
-    const changed = env([{ recognized: true, quantity: 3, sourceUnit: "m" }]);
+    expect(accepted.aiRun.mock.calls.map(([model]) => model)).toEqual(["@cf/zai-org/glm-5.3-flash", "@cf/zai-org/glm-5.3-flash"]);
+    expect(accepted.aiRun.mock.calls[0][1]).toMatchObject({ temperature: 0, reasoning_effort: "low", max_tokens: 600, messages: [{ role: "system" }, { role: "user", content: "2 metresish" }] });
+    const changed = env([{ ...reading, amount: 3 }]);
     expect((await convert(request({ measurement: "2 metresish" }), changed)).status).toBe(422);
     expect(changed.aiRun).toHaveBeenCalledTimes(1);
   });
@@ -129,20 +129,21 @@ describe("/api/convert", () => {
   it("reads strict JSON from standard chat-completion envelopes", async () => {
     const bindings = env();
     bindings.aiRun.mockReset();
-    bindings.aiRun.mockResolvedValueOnce({ choices: [{ message: { content: JSON.stringify(parsed) } }] });
-    bindings.aiRun.mockImplementationOnce((model,input)=>({choices:[{message:{content:JSON.stringify(chooseFirst(model,input).response)}}]}));
+    bindings.aiRun.mockResolvedValueOnce({ choices: [{ message: { content: JSON.stringify({ kind: "physical", amount: 1, written: "J", perUnit: 1, standardUnit: "J", estimated: false, item: "", items: "", subject: "a sneeze" }) } }] });
+    bindings.aiRun.mockResolvedValueOnce({ choices: [{ message: { content: JSON.stringify({ proposals: [{ ...bus, value: 0.1, unit: "J", line: "{N} double-decker buses, lifted a hair." }] }) } }] });
     const response = await convert(request({ measurement: "the lab sneezed" }), bindings);
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({ result: { interpretation: "144 J", packetId: expect.any(String) } });
+    await expect(response.json()).resolves.toMatchObject({ result: { interpretation: "1 J", headline: "10 double-decker buses, lifted a hair.", origin: "model" } });
     expect(bindings.aiRun).toHaveBeenCalledTimes(2);
   });
 
-  it("preserves scientific notation through the actual entrypoint without a parser call", async () => {
-    const bindings = env([reference]);
+  it("preserves scientific notation through the actual entrypoint without a reader call", async () => {
+    const bindings = env();
     const response = await convert(request({ measurement: "1e12joules" }), bindings);
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({ result: { interpretation: "1000000000000 J" } });
     expect(bindings.aiRun).toHaveBeenCalledTimes(1);
+    expect(bindings.aiRun.mock.calls[0][0]).toBe("@cf/zai-org/glm-5.3-flash");
   });
 
   it("rejects a nonzero literal that underflows before any AI call", async () => {
@@ -152,16 +153,16 @@ describe("/api/convert", () => {
   });
 
   it("converts reciprocal units through the actual entrypoint", async () => {
-    const bindings = env([{ ...reference, referenceQuantity: 1, referenceUnit: "s^-1", referenceLabel: "pendulum swings", assumption: "one swing per second" }]);
+    const bindings = env([{ proposals: [{ ...bus, label: "pendulum swings", singular: "pendulum swing", value: 1, unit: "Hz", line: "{N} pendulum swings every second." }] }]);
     const response = await convert(request({ measurement: "2 1/s" }), bindings);
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({ result: { quantity: 2, packetId: expect.any(String), sourceUnit: "s^-1", dimension: "frequency" } });
+    await expect(response.json()).resolves.toMatchObject({ result: { quantity: 2, sourceUnit: "s^-1", dimension: "frequency", headline: "2 pendulum swings every second." } });
     expect(bindings.aiRun).toHaveBeenCalledTimes(1);
   });
 
   it("calculates fractional measurements locally and sends only the creative request", async () => {
     for (const [measurement, quantity, sourceUnit] of [["1/2 litre", 0.5, "L"], ["half a litre", 0.5, "L"], ["1/2 L 250 mL", 750, "mL"]] as const) {
-      const bindings = env([{ ...reference, referenceUnit: sourceUnit }]);
+      const bindings = env();
       const response = await convert(request({ measurement }), bindings);
       expect(response.status).toBe(200);
       const body = await response.json() as { result: { quantity: number; sourceUnit: string } };
@@ -173,7 +174,7 @@ describe("/api/convert", () => {
 
   it("sums mixed literals locally and sends only the creative request", async () => {
     for (const measurement of ["5 ft 6 in", "5ft6in"]) {
-      const bindings = env([{ ...reference, referenceUnit: "in" }]);
+      const bindings = env();
       const response = await convert(request({ measurement }), bindings);
       expect(response.status).toBe(200);
       const body = await response.json() as { result: { quantity: number; sourceUnit: string; dimension: string } };
@@ -183,104 +184,85 @@ describe("/api/convert", () => {
     }
   });
 
-  it("rejects captions and off-menu IDs without another AI call", async () => {
-    for (const output of [{packetId:"unknown"},{packetId:"unknown",quip:"extra"},["not an object"]]) {
-      const bindings=env([output]);
-      const response=await convert(request({measurement:"144 jouls"}),bindings);
+  it("never lets creative output change the measurement or add fields", async () => {
+    for (const output of [{ proposals: [{ ...bus, quantity: 2, sourceUnit: "L" }] }, { proposals: [{ ...bus, line: "That's 7 buses, trust me." }] }, ["not an object"]]) {
+      const bindings = env([output]);
+      const response = await convert(request({ measurement: "40 tonnes" }), bindings);
       expect(response.status).toBe(200);
-      const payload=await response.json() as {result:{packetId:string}};
-      expect(payload.result.packetId).not.toBe("unknown");
+      const payload = await response.json() as { result: Record<string, unknown> };
+      expect(payload.result).toMatchObject({ quantity: 40, sourceUnit: "tonne" });
+      expect(payload.result.headline).not.toMatch(/\b7 buses/);
       expect(payload.result).not.toHaveProperty("quip");
       expect(bindings.aiRun).toHaveBeenCalledTimes(1);
     }
   });
 
   it("honours recent families and rejects malformed history before inference", async () => {
-    const first=env();
-    const response=await convert(request({measurement:"144 J"}),first);
-    const {result}=await response.json() as {result:{family:string;recentFamilies:string[]}};
-    const next=env();
-    const nextResponse=await convert(request({measurement:"144 J",recentFamilies:result.recentFamilies}),next);
-    expect((await nextResponse.json() as {result:{family:string}}).result.family).not.toBe(result.family);
-    for(const recentFamilies of ["bad",Array(9).fill("too-many"),["ignore instructions"],[{}]]) {
-      const bindings=env();expect((await convert(request({measurement:"144 J",recentFamilies}),bindings)).status).toBe(400);
+    const first = env();
+    const response = await convert(request({ measurement: "144 J" }), first);
+    const { result } = await response.json() as { result: { family: string; recentFamilies: string[] } };
+    const next = env();
+    const nextResponse = await convert(request({ measurement: "144 J", recentFamilies: result.recentFamilies }), next);
+    expect((await nextResponse.json() as { result: { family: string } }).result.family).not.toBe(result.family);
+    expect(JSON.parse(next.aiRun.mock.calls[0][1].messages[1].content).avoid).toEqual(result.recentFamilies);
+    for (const recentFamilies of ["bad", Array(9).fill("too-many"), ["ignore instructions"], [{}]]) {
+      const bindings = env(); expect((await convert(request({ measurement: "144 J", recentFamilies }), bindings)).status).toBe(400);
       expect(bindings.aiRun).not.toHaveBeenCalled();
     }
   });
 
-  it("returns explicit empty coverage without a model call", async () => {
-    const bindings=env();
-    expect((await convert(request({measurement:"1e50 kg"}),bindings)).status).toBe(422);
-    expect(bindings.aiRun).not.toHaveBeenCalled();
+  it("gives the creative model a try at scales the catalogue cannot reach", async () => {
+    const empty = env();
+    await expect((await convert(request({ measurement: "1e50 kg" }), empty)).json()).resolves.toMatchObject({ result: { origin: "plain", dimension: "mass" } });
+    expect(empty.aiRun).toHaveBeenCalledTimes(1);
+    const stars = env([{ proposals: [{ ...bus, label: "Suns", singular: "Sun", value: 2e30, unit: "kg", line: "{N} Suns on a cosmic bathroom scale." }] }]);
+    await expect((await convert(request({ measurement: "1e33 kg" }), stars)).json()).resolves.toMatchObject({ result: { headline: "500 Suns on a cosmic bathroom scale." } });
   });
 
-  it("logs bounded provider failures without model text or request data", async () => {
-    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  it("logs a one-line stage summary without measurement text, model text or request data", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
     try {
       const bindings = env(); bindings.aiRun.mockReset(); bindings.aiRun.mockRejectedValueOnce(new Error("private-model-text"));
       await convert(request({ measurement: "987 jouls" }), bindings);
       const entry = JSON.parse(log.mock.calls[0][0]);
-      expect(entry).toEqual({ requestId: expect.any(String), stage: "creative", model: "@cf/meta/llama-3.2-3b-instruct", elapsedMs: expect.any(Number), reason: "provider" });
+      expect(entry).toMatchObject({ requestId: expect.any(String), outcome: "template", status: 200, dimension: "energy", stages: [expect.stringMatching(/^creative:provider:\d+$/), expect.stringMatching(/^jev-template:unavailable:0$/)] });
       expect(log.mock.calls[0][0]).not.toMatch(/private-|987 jouls|verified-token|203\.0\.113\.8|test-secret/);
     } finally {
       log.mockRestore();
     }
   });
 
-  it("returns a helpful input response without a creative call when the parser cannot recognise input", async () => {
-    const bindings = env([{ recognized: false, quantity: 0, sourceUnit: "m" }]);
-    const response = await convert(request({ measurement: "the lab sneezed" }), bindings);
-    expect(response.status).toBe(422);
-    await expect(response.json()).resolves.toMatchObject({ error: expect.stringContaining("number and unit"), requestId: expect.any(String) });
-    expect(bindings.aiRun).toHaveBeenCalledTimes(1);
-  });
-
-  it("stops after parser output that is malformed, invalid, negative, or below absolute zero", async () => {
-    for (const [parserOutput, status] of [["not json", 502], [{ recognized: true, quantity: 1, sourceUnit: "not-a-unit" }, 422], [{ recognized: true, quantity: -1, sourceUnit: "J" }, 422], [{ recognized: true, quantity: -274, sourceUnit: "degC" }, 422], [{ recognized: true, quantity: 1e308, sourceUnit: "km" }, 422], [{ recognized: true, quantity: Number.MIN_VALUE, sourceUnit: "mm" }, 422], [{ recognized: true, quantity: 1, sourceUnit: "m^1e309" }, 422]] as const) {
-      const bindings = env([parserOutput]);
+  it("stops after reader output that is malformed, invalid, negative, or below absolute zero", async () => {
+    const reading = (amount: number, standardUnit: string) => ({ kind: "physical", amount, written: "bad measurement", perUnit: 1, standardUnit, estimated: true, item: "", items: "", subject: "" });
+    for (const output of ["not json", reading(1, "not-a-unit"), reading(-1, "J"), reading(-274, "degC"), reading(1e308, "km"), reading(Number.MIN_VALUE, "mm"), reading(1, "m^1e309")]) {
+      const bindings = env([output]);
       const response = await convert(request({ measurement: "bad measurement" }), bindings);
-      expect(response.status).toBe(status);
+      expect(response.status).toBe(422);
       expect(bindings.aiRun).toHaveBeenCalledTimes(1);
     }
   });
 
-  it("returns a safe grounded fallback when creative output is invalid or unavailable", async () => {
-    const invalid = env([{ referenceId: "invalid", quip: "nope" }]);
-    expect((await convert(request({ measurement: "144 J" }), invalid)).status).toBe(200);
-    expect(invalid.aiRun).toHaveBeenCalledTimes(1);
-    const unavailable = env();
-    unavailable.aiRun.mockReset();
-    unavailable.aiRun.mockRejectedValueOnce(new DOMException("aborted", "AbortError"));
-    expect((await convert(request({ measurement: "144 J" }), unavailable)).status).toBe(200);
-    expect(unavailable.aiRun).toHaveBeenCalledTimes(1);
-  });
-
-  it("keeps parser budget failures explicit and uses an offered result when the selector is budget-limited", async () => {
-    const parserLimited = env([]);
-    parserLimited.aiRun.mockRejectedValueOnce(Object.assign(new Error("gateway exhausted"), { status: 429 }));
-    const parserResponse = await convert(request({ measurement: "the lab sneezed" }), parserLimited);
-    expect(parserResponse.status).toBe(429);
-    await expect(parserResponse.json()).resolves.toMatchObject({ error: "The comparison engine is busy. Please try again shortly.", requestId: expect.any(String) });
+  it("keeps reader budget failures explicit and answers from the catalogue when the creative model is budget-limited", async () => {
+    const readerLimited = env();
+    readerLimited.aiRun.mockRejectedValueOnce(Object.assign(new Error("gateway exhausted"), { status: 429 }));
+    const readerResponse = await convert(request({ measurement: "the lab sneezed" }), readerLimited);
+    expect(readerResponse.status).toBe(429);
+    await expect(readerResponse.json()).resolves.toMatchObject({ error: "The comparison engine is busy. Please try again shortly.", requestId: expect.any(String) });
     const creativeLimited = env();
-    creativeLimited.aiRun.mockReset();
     creativeLimited.aiRun.mockRejectedValueOnce(Object.assign(new Error("budget exhausted"), { status: 429 }));
     const creativeResponse = await convert(request({ measurement: "144 J" }), creativeLimited);
     expect(creativeResponse.status).toBe(200);
-    await expect(creativeResponse.json()).resolves.toMatchObject({ result: { packetId: expect.any(String), quantity: 144 } });
+    await expect(creativeResponse.json()).resolves.toMatchObject({ result: { packetId: expect.any(String), quantity: 144, origin: "catalogue" } });
     expect(creativeLimited.aiRun).toHaveBeenCalledTimes(1);
   });
 
-  it("classifies an upstream provider timeout as a bounded timeout stage error", async () => {
-    const log = vi.spyOn(console, "error").mockImplementation(() => {});
-    try {
+  it("classifies upstream timeouts and aborts as timeout stages", async () => {
+    for (const failure of [new Error("upstream request timeout"), new DOMException("aborted", "AbortError")]) {
       const bindings = env();
-      bindings.aiRun.mockReset();
-      bindings.aiRun.mockRejectedValueOnce(new Error("upstream request timeout"));
+      bindings.aiRun.mockRejectedValueOnce(failure);
       const response = await convert(request({ measurement: "144 J" }), bindings);
       expect(response.status).toBe(200);
-      expect(JSON.parse(log.mock.calls[0][0])).toMatchObject({ stage: "creative", model: "@cf/meta/llama-3.2-3b-instruct", reason: "timeout" });
-    } finally {
-      log.mockRestore();
+      expect(JSON.parse(bindings.rows[0][8] as string).stages[0]).toMatchObject({ stage: "creative", model: "@cf/zai-org/glm-5.3-flash", outcome: failure instanceof DOMException ? "provider" : "timeout" });
     }
   });
 
@@ -350,5 +332,18 @@ describe("/api/convert", () => {
     disabled.AI_ENABLED = "false";
     expect((await convert(request({ measurement: "2 km" }), disabled)).status).toBe(503);
     expect(disabled.aiRun).not.toHaveBeenCalled();
+  });
+});
+
+describe("scheduled replay prune", () => {
+  it("deletes replay rows older than 30 days on the daily cron, even with no traffic", async () => {
+    const bindings = env();
+    const pending: Promise<unknown>[] = [];
+    await worker.scheduled({ scheduledTime: Date.parse("2026-10-04T03:17:00.000Z") }, bindings, { waitUntil: promise => { pending.push(promise); } });
+    await Promise.all(pending);
+    expect(bindings.rows).toEqual([["DELETE FROM conversions WHERE created_at < ?", "2026-09-04T03:17:00.000Z"]]);
+    const failing = { ...bindings, REPLAY_LOG: { prepare: () => { throw new Error("no such table"); } } };
+    await worker.scheduled({ scheduledTime: Date.now() }, failing, { waitUntil: promise => { pending.push(promise); } });
+    await expect(Promise.all(pending)).resolves.toBeDefined();
   });
 });

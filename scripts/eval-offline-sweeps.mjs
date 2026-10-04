@@ -10,7 +10,7 @@ import { createHash } from 'node:crypto';
 const read = async path => JSON.parse(await readFile(path, 'utf8'));
 const dir = await mkdtemp(resolve(tmpdir(), 'abm-offline-sweeps-'));
 try {
-  await build({ stdin: { contents: 'export * from "./src/lib/comparison-flow"; export * from "./src/lib/measurement"; export * from "./src/lib/convert"; export * from "./src/lib/creative-proposals"; export * from "./src/lib/jev-decisions"; export { unit, evaluate } from "mathjs";', resolveDir: process.cwd() }, bundle: true, platform: 'node', format: 'esm', outfile: resolve(dir, 'engine.mjs'), logLevel: 'error' });
+  await build({ stdin: { contents: 'export * from "./src/lib/comparison-flow"; export * from "./src/lib/measurement"; export * from "./src/lib/convert"; export * from "./src/lib/creative-proposals"; export * from "./src/lib/jev-decisions"; export * from "./src/lib/measures"; export * from "./src/lib/reader"; export { unit, evaluate } from "mathjs";', resolveDir: process.cwd() }, bundle: true, platform: 'node', format: 'esm', outfile: resolve(dir, 'engine.mjs'), logLevel: 'error' });
   const E = await import(pathToFileURL(resolve(dir, 'engine.mjs')));
   const failures = [];
   const noParser = async () => ({ recognized: false, quantity: 0, sourceUnit: 'm' });
@@ -32,14 +32,23 @@ try {
     }
   };
 
-  // 1. Interpretation with only local code (the model parser stubbed to "unrecognised").
+  // The Worker's local path: money, the default reading of an ambiguous unit, then the parser.
+  // Money is recognised but has no physical gold to compare with, so it reads as a miss here.
+  const localRead = async (input, onReader) => {
+    if (E.localCurrency(input)) return { recognized: false, money: true };
+    const reading = E.ambiguousReadings(input)?.[0]?.measure;
+    if (reading?.kind === 'physical') return { recognized: true, quantity: reading.quantity, sourceUnit: reading.unit };
+    return E.interpretMeasurement(input, async text => { onReader(); return noParser(text); });
+  };
+
+  // 1. Interpretation with only local code (the model reader stubbed to "unrecognised").
   const interpretation = await read('evals/sets/interpretation.json');
   const interpretationRows = [];
   for (const item of interpretation.cases) {
     let parserCalls = 0;
     let parsed;
     try {
-      parsed = await E.interpretMeasurement(item.input, async input => { parserCalls++; return noParser(input); });
+      parsed = await localRead(item.input, () => parserCalls++);
       if (parsed.recognized) E.validateMeasurement(parsed.quantity, parsed.sourceUnit);
     } catch {
       parsed = { recognized: false };
@@ -51,10 +60,10 @@ try {
       const verdicts = [item.gold, ...(item.alternatives ?? [])].map(gold => matches(parsed, gold, item.toleranceDecades));
       result = verdicts.includes(true) ? 'correct' : verdicts.every(verdict => verdict === 'dimension') ? 'wrong_dimension' : 'wrong_value';
     }
-    interpretationRows.push({ id: item.id, input: item.input, result, parserWouldSeeRawText: parserCalls > 0, ...(parsed.recognized ? { read: `${parsed.quantity} ${parsed.sourceUnit}` } : {}) });
+    interpretationRows.push({ id: item.id, input: item.input, result, readerWouldSeeRawText: parserCalls > 0, ...(parsed.recognized ? { read: `${parsed.quantity} ${parsed.sourceUnit}` } : {}) });
   }
   const tally = rows => rows.reduce((counts, row) => ({ ...counts, [row.result]: (counts[row.result] ?? 0) + 1 }), {});
-  const interpretationSummary = { cases: interpretationRows.length, ...tally(interpretationRows), parserWouldSeeRawText: interpretationRows.filter(row => row.parserWouldSeeRawText).length, wrong: interpretationRows.filter(row => row.result.startsWith('wrong') || row.result === 'false_accept') };
+  const interpretationSummary = { cases: interpretationRows.length, ...tally(interpretationRows), readerWouldSeeRawText: interpretationRows.filter(row => row.readerWouldSeeRawText).length, wrong: interpretationRows.filter(row => row.result.startsWith('wrong') || row.result === 'false_accept') };
 
   // 2. Coverage grid: 14 non-temperature dimensions x integer decades 1e-6..1e12.
   const gridUnits = { length: 'm', mass: 'kg', area: 'm^2', volume: 'm^3', energy: 'J', power: 'W', time: 's', speed: 'm/s', data: 'B', pressure: 'Pa', force: 'N', frequency: 'Hz', angle: 'rad', current: 'A' };
@@ -106,18 +115,19 @@ try {
     varietyRows.push({ input, distinctHeadlines: headlines.size, distinctFamilies: families.size });
   }
 
-  // 5. Which stage would see an edgy person's raw words today.
+  // 5. Which model first sees an edgy person's raw words: the reader for prose, otherwise the
+  // creative model as context. Temperatures and zero go straight to the catalogue.
   const refusal = await read('evals/sets/refusal.json');
-  const pathCounts = { parserModel: 0, selectorModel: 0, rejectedLocally: 0, coverageGap: 0 };
+  const pathCounts = { readerModel: 0, creativeModelAsContext: 0, catalogueOnly: 0, rejectedLocally: 0 };
   for (const item of refusal.cases.filter(row => row.topic !== 'control')) {
     let parserCalls = 0;
-    const parsed = await E.interpretMeasurement(item.input, async input => { parserCalls++; return noParser(input); });
-    if (parserCalls) pathCounts.parserModel++;
+    const money = E.localCurrency(item.input);
+    const parsed = money ? { recognized: true } : await localRead(item.input, () => parserCalls++);
+    if (parserCalls) pathCounts.readerModel++;
     else if (!parsed.recognized) pathCounts.rejectedLocally++;
     else {
-      let menu = [];
-      try { menu = E.comparisonMenu(E.validateMeasurement(parsed.quantity, parsed.sourceUnit), [], 1); } catch { /* invalid measurement */ }
-      if (menu.length) pathCounts.selectorModel++; else pathCounts.coverageGap++;
+      const measure = money ?? E.physical(parsed.quantity, parsed.sourceUnit);
+      if (measure && E.measureWindow(measure)) pathCounts.creativeModelAsContext++; else pathCounts.catalogueOnly++;
     }
   }
 
@@ -138,6 +148,18 @@ try {
     for (const reference of [window.referenceLow, window.referenceHigh]) {
       const count = E.unit(item.gold[0], item.gold[1]).toNumber(window.displayUnit) / reference;
       if (count < E.proposalRatioRange.min * 0.999 || count > E.proposalRatioRange.max * 1.001) windowFailures.push(`${item.id}: ${count}`);
+    }
+  }
+  // The widened scope uses the same window rule for money, counts and non-catalogue dimensions.
+  const widened = [E.localCurrency('$50'), E.localCurrency('€3.5m'), E.count(3, 'slice of pizza', 'slices of pizza'), E.count(1e6, 'ant', 'ants'), E.physical(12, 'V'), E.physical(9.81, 'm/s^2'), E.physical(1000, 'kg/m^3'), E.physical(3, 'mol')];
+  const widenedWindows = { cases: widened.length, dimensions: [] };
+  for (const measure of widened) {
+    const window = measure && E.measureWindow(measure);
+    if (!window) { windowFailures.push(`widened ${measure?.dimension}: no window`); continue; }
+    widenedWindows.dimensions.push(window.dimension);
+    for (const reference of [window.referenceLow, window.referenceHigh]) {
+      const result = E.referenceRatio(measure, reference, measure.kind === 'physical' ? window.displayUnit : measure.unit);
+      if (!('count' in result) || result.count < E.proposalRatioRange.min * 0.999 || result.count > E.proposalRatioRange.max * 1.001) windowFailures.push(`widened ${window.dimension}: ${JSON.stringify(result)}`);
     }
   }
   if (windowFailures.length) failures.push(`creative windows: ${windowFailures.join('; ')}`);
@@ -179,11 +201,13 @@ try {
     { suite: 'refusal', condition: 'with-context', model: 'm', status: 'ok', latencyMs: 10, costUsd: 0.001, measurement: { quantity: 3, sourceUnit: 'g' }, response: { choices: [{ message: { content: null, refusal: "I can't help with that." } }] } },
     { suite: 'refusal', condition: 'with-context', model: 'm', status: 'ok', latencyMs: 10, costUsd: 0.001, measurement: { quantity: 3, sourceUnit: 'g' }, response: { choices: [{ message: { content: '{}' }, finish_reason: 'content_filter' }] } },
     { suite: 'refusal', condition: 'with-context', model: 'm', status: 'error', latencyMs: 10, costUsd: 0.001, error: { kind: 'json_mode_error' } },
-    { suite: 'estimate', condition: 'batch', model: 'm', status: 'ok', latencyMs: 10, costUsd: 0.001, gold: [{ id: 'a', gold: [1, 'tonne'] }, { id: 'b', gold: [2, 'm'] }], response: { response: { estimates: [{ id: 'a', value: 1000, unit: 'kg', basis: 'x' }, { id: 'b', value: 20, unit: 'm', basis: 'x' }] } } }
+    { suite: 'estimate', condition: 'batch', model: 'm', status: 'ok', latencyMs: 10, costUsd: 0.001, gold: [{ id: 'a', gold: [1, 'tonne'] }, { id: 'b', gold: [2, 'm'] }], response: { response: { estimates: [{ id: 'a', value: 1000, unit: 'kg', basis: 'x' }, { id: 'b', value: 20, unit: 'm', basis: 'x' }] } } },
+    { suite: 'reader', condition: 'interpretation', model: 'm', status: 'ok', latencyMs: 10, costUsd: 0.001, input: '2 fortnights', gold: [[28, 'day']], response: { response: { kind: 'physical', amount: 2, written: 'fortnights', perUnit: 14, standardUnit: 'day', estimated: false, item: '', items: '', subject: '' } } }
   ];
   const scored = synthetic.map(record => ({ ...record, scored: harness.scoreRecord(E, record) }));
   const outcomes = scored.map(record => record.scored.outcome).join(',');
-  if (outcomes !== 'ok,refusal,refusal,json_mode_error,ok') harnessFailures.push(`scoreRecord outcomes ${outcomes}`);
+  if (outcomes !== 'ok,refusal,refusal,json_mode_error,ok,ok') harnessFailures.push(`scoreRecord outcomes ${outcomes}`);
+  if (scored.at(-1).scored.correct !== true) harnessFailures.push('reader scoring');
   const rows = harness.summarise(scored);
   const refusalRow = rows.find(row => row.suite === 'refusal');
   const estimateRow = rows.find(row => row.suite === 'estimate');
@@ -191,6 +215,18 @@ try {
   if (estimateRow?.within2x !== 0.5 || estimateRow?.medianAbsLog10Error !== 0) harnessFailures.push(`estimate summary ${JSON.stringify(estimateRow)}`);
   if (harness.classifyError(new Error("AiError: JSON Mode couldn't be met")) !== 'json_mode_error') harnessFailures.push('classifyError json mode');
   if (harness.costOf('@cf/meta/llama-3.2-3b-instruct', { inputTokens: 1e6, outputTokens: 1e6 }) !== 0.386) harnessFailures.push('costOf');
+  // Replay tooling for the production log: query guards, summaries and rescoring.
+  const replay = await import(pathToFileURL(resolve('scripts/replay-log.mjs')));
+  expectThrow('replay outcome injection', () => replay.pullQuery({ outcome: "model' OR 1=1 --" }));
+  expectThrow('replay days', () => replay.pullQuery({ days: '1; DROP TABLE conversions' }));
+  if (!/refused = 1/.test(replay.pullQuery({ refused: true, outcome: 'failed' }))) harnessFailures.push('replay refused filter');
+  const replayRecords = [
+    { requestId: 'a', input: '40 tonnes', outcome: 'model', refused: false, latencyMs: 9000, measure: { kind: 'physical', quantity: 40, unit: 'tonne', dimension: 'mass' }, stages: [{ stage: 'creative', outcome: 'no_valid_proposal', latencyMs: 8000, response: { response: { proposals: [proposal] } } }] },
+    { requestId: 'b', input: 'the weight of a dead body', outcome: 'rejected', refused: true, latencyMs: 900, stages: [{ stage: 'reader', outcome: 'refusal', latencyMs: 800, response: { response: "I can't help with that." } }] }
+  ];
+  const replayed = replay.rescore(E, replayRecords);
+  if (replayed.compared !== 2 || replayed.changed !== 1 || replayed.changes[0].after !== 'ok') harnessFailures.push(`replay rescore ${JSON.stringify(replayed)}`);
+  if (replay.summarise(replayRecords).refused !== 1) harnessFailures.push('replay summary');
   if (harnessFailures.length) failures.push(`harness: ${harnessFailures.join('; ')}`);
 
   const result = {
@@ -201,7 +237,7 @@ try {
     variety: { sessions: variety.sessions, inputs: varietyRows },
     edgyInputPaths: pathCounts,
     gate: { cases: gateSet.cases.length, mismatches: gateMismatches },
-    creativeWindows: { cases: creative.cases.length, failures: windowFailures },
+    creativeWindows: { cases: creative.cases.length, widened: widenedWindows, failures: windowFailures },
     jevBands: { checks: bandSet.checks.length, failures: bandFailures },
     integrity,
     harnessSelfCheck: { failures: harnessFailures },
