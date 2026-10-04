@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="public/banana-ruler.svg" width="180" alt="A banana pretending to be a ruler">
+<img src="public/banana-ruler.svg" width="180" alt="A banana being measured on a ruler">
 
 # Anything But Metric
 
