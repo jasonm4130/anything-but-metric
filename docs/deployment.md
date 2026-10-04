@@ -39,16 +39,16 @@ The Worker reaches models through gateway ID `anything-but-metric`:
 | Use | Route |
 | --- | --- |
 | Workers AI | The `AI` binding with `gateway: { id: "anything-but-metric" }` |
-| Jev decisions | `https://gateway.ai.cloudflare.com/v1/{account_id}/anything-but-metric/custom-openrouter-api/api/alpha/decisions` |
+| Jev | `https://gateway.ai.cloudflare.com/v1/{account_id}/anything-but-metric/custom-openrouter-api/api/v1/systemone` |
 
-The custom route covers every OpenRouter path, so chat completions use `.../custom-openrouter-api/api/v1/chat/completions`. The Worker calls Workers AI for the reader and creative models and Jev for checks, choices and screening prose input. It reaches Jev only when both `JEV_DECISIONS_URL` and `AI_GATEWAY_TOKEN` are installed; otherwise it answers without Jev's checks. Applying the stack does not deploy the Worker.
+Jev goes through OpenRouter's System One API because the gateway does not forward the Decisions API path, `/api/alpha/decisions`, intact; see [`infra/README.md`](../infra/README.md#routes-the-worker-uses). The custom route also serves chat completions at `.../custom-openrouter-api/api/v1/chat/completions`. The Worker calls Workers AI for the reader and creative models and Jev for checks, choices and screening prose input. It reaches Jev only when both `JEV_DECISIONS_URL` and `AI_GATEWAY_TOKEN` are installed; otherwise it answers without Jev's checks. Applying the stack does not deploy the Worker.
 
 ## First release of the model-led flow
 
 The model-led Worker needs these once, before or with its first release:
 
-1. Apply the `infra/` stack so the custom OpenRouter route and its stored key exist, then send one decision request through it (see [`infra/README.md`](../infra/README.md#plan-and-apply)).
-2. Create a gateway token: a Cloudflare API token with **AI Gateway Run** for the `anything-but-metric` gateway. Store it in 1Password and point `AI_GATEWAY_TOKEN` and `JEV_DECISIONS_URL` in `.env.op` at it and at the decisions route.
+1. Apply the `infra/` stack so the custom OpenRouter route and its stored key exist, then send one Jev request through it (see [`infra/README.md`](../infra/README.md#plan-and-apply)).
+2. Create a gateway token: a Cloudflare API token with **AI Gateway Run** for the `anything-but-metric` gateway. Store it in 1Password and point `AI_GATEWAY_TOKEN` and `JEV_DECISIONS_URL` in `.env.op` at it and at the Jev route.
 3. Create the replay database and its table:
 
    ```sh

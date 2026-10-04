@@ -1,11 +1,13 @@
 # OpenRouter through the gateway, using one stored key and no key in requests.
 #
-# The native `openrouter` route documents only chat completions. Jev's decision
-# API is POST https://openrouter.ai/api/alpha/decisions, so a custom provider
-# with the bare origin as its base URL forwards any OpenRouter path, chat
-# completions included:
-#   /custom-openrouter-api/api/alpha/decisions -> https://openrouter.ai/api/alpha/decisions
+# The native `openrouter` route documents only chat completions. Jev is served
+# at POST https://openrouter.ai/api/v1/systemone, which a custom provider with the
+# bare origin as its base URL reaches:
+#   /custom-openrouter-api/api/v1/systemone -> https://openrouter.ai/api/v1/systemone
 #   /custom-openrouter-api/api/v1/chat/completions -> https://openrouter.ai/api/v1/chat/completions
+# Jev's Decisions API, /api/alpha/decisions, does not arrive intact: the gateway
+# sent it to an OpenRouter page that does not exist, as reported for other
+# non-/v1 paths in https://github.com/cloudflare/ai/issues/476.
 # https://developers.cloudflare.com/ai-gateway/usage/providers/openrouter/
 # https://developers.cloudflare.com/ai-gateway/configuration/custom-providers/
 # https://developers.cloudflare.com/ai-gateway/configuration/bring-your-own-keys/
@@ -13,10 +15,12 @@
 locals {
   gateway_id = cloudflare_ai_gateway.anything_but_metric.id
 
-  # Custom providers are addressed with a `custom-` prefix on their slug.
-  openrouter_custom_slug   = "openrouter-api"
-  openrouter_provider_slug = "custom-${local.openrouter_custom_slug}"
-  byok_alias               = "default"
+  # Requests address a custom provider with a `custom-` prefix on its slug. The
+  # stored key does not attach under that prefixed slug, so it uses the bare one.
+  openrouter_custom_slug = "openrouter-api"
+  openrouter_route_slug  = "custom-${local.openrouter_custom_slug}"
+  byok_provider_slug     = local.openrouter_custom_slug
+  byok_alias             = "default"
 }
 
 # Custom providers are account-wide; the slug must be unique in the account.
@@ -33,7 +37,7 @@ resource "restful_resource" "openrouter_custom_provider" {
     name        = "OpenRouter API"
     slug        = local.openrouter_custom_slug
     base_url    = "https://openrouter.ai"
-    description = "Full OpenRouter API for paths the native route does not document, such as /api/alpha/decisions."
+    description = "Full OpenRouter API for paths the native route does not document, such as /api/v1/systemone."
     enable      = true
   }
 
@@ -45,10 +49,10 @@ resource "restful_resource" "openrouter_custom_provider" {
 resource "cloudflare_secrets_store_secret" "openrouter" {
   account_id = var.cloudflare_account_id
   store_id   = var.secrets_store_id
-  name       = "${local.gateway_id}_${local.openrouter_provider_slug}_${local.byok_alias}"
+  name       = "${local.gateway_id}_${local.byok_provider_slug}_${local.byok_alias}"
   value      = var.openrouter_api_key
   scopes     = ["ai_gateway"]
-  comment    = "OpenRouter key for the ${local.gateway_id} gateway (${local.openrouter_provider_slug})."
+  comment    = "OpenRouter key for the ${local.gateway_id} gateway (${local.openrouter_route_slug})."
 }
 
 # A stored provider key cannot be edited apart from its secret, so any change
@@ -60,7 +64,7 @@ resource "restful_resource" "openrouter_provider_key" {
   read_selector   = "result"
 
   body = {
-    provider_slug  = local.openrouter_provider_slug
+    provider_slug  = local.byok_provider_slug
     alias          = local.byok_alias
     default_config = true
     secret_id      = cloudflare_secrets_store_secret.openrouter.id

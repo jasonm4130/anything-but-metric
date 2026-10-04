@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import worker, { convert, type Env } from "../src/worker";
 
 const bus = { label: "double-decker buses", singular: "double-decker bus", value: 12, unit: "tonne", basis: "A London bus weighs about 12 t empty.", family: "vehicles", line: "That's {N} double-decker buses parked nose to tail." };
-const jevUrl = "https://gateway.ai.cloudflare.com/v1/account/anything-but-metric/custom-openrouter-api/api/alpha/decisions";
+const jevUrl = "https://gateway.ai.cloudflare.com/v1/account/anything-but-metric/custom-openrouter-api/api/v1/systemone";
 
 function request(body: unknown, headers: Record<string, string> = {}) {
   return new Request("https://anythingbutmetric.wtf/api/convert", {

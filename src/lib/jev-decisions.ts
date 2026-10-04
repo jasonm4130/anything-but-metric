@@ -2,7 +2,9 @@ import { formatNumber } from "./convert";
 
 /**
  * Question builders and response readers for Jev, TypeSafe's decision model,
- * served by OpenRouter's alpha Decisions API (POST /api/alpha/decisions).
+ * served by OpenRouter. The Worker calls its System One API (POST /api/v1/systemone), which
+ * takes the same requests and returns the same answers as the alpha Decisions API
+ * (POST /api/alpha/decisions); the gateway forwards only the former intact.
  * Jev answers only within supplied criteria, so it cannot return a refusal string.
  * The Worker's model-led flow asks these questions in production; the live evaluation
  * harness uses the same builders to calibrate them.
