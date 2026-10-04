@@ -1,6 +1,6 @@
 # How the converter works
 
-Anything But Metric is model-led. A creative model proposes things to compare with and estimates how big one of each is. Jev, TypeSafe's decision model, checks those estimates and chooses the comparison. Code does only the arithmetic: unit factors and one division. The reviewed catalogue in `src/data/` is the fallback when the creative step fails or refuses, and a plain restatement of the measure covers what the catalogue cannot.
+Anything But Metric is model-led. A creative model proposes things to compare with and estimates how big one of each is. Jev, TypeSafe's decision model, checks those estimates and chooses the comparison. Code does only the arithmetic: unit factors and one division. The reviewed catalogue in `src/data/` is the fallback when the creative step fails or refuses, and a plain restatement of the measure covers what the catalogue cannot. When a model has to read the visitor's own words, Jev also screens them for attempts to steer the system.
 
 ```mermaid
 flowchart TD
@@ -11,8 +11,11 @@ flowchart TD
   C -->|Money, unit or sum| E[Measure]
   C -->|Ambiguous unit| J1[Jev chooses the reading]
   C -->|Prose or unknown unit| D[Reader model: number as written + factor]
+  C -->|Prose or unknown unit| JG[Jev guard, alongside the reader]
   J1 --> E
-  D --> N{Number matches the input?}
+  D & JG --> GV{Jev: a measurement?}
+  GV -->|Injection, off-topic or abuse| X
+  GV -->|Measurement, or Jev unavailable| N{Number matches the input?}
   N -->|No| X[Explain and stop]
   N -->|Yes, factor estimated| J2[Jev checks the factor]
   N -->|Yes| E
@@ -35,6 +38,7 @@ flowchart TD
 | --- | --- | --- |
 | Local reader | Money symbols, codes and words; supported units, typos, fractions, sums; ambiguous unit words | Preserves the full input; rejects invalid values without a model call |
 | Reader model | Prose and units code does not know: the number as written, the kind (physical, money or count) and what one written unit equals | GLM 5.3 Flash at low reasoning effort, 600 output tokens, six seconds. Its number must be one the person typed. Code's own factor wins for units it knows |
+| Jev guard | Whether prose the reader sees is a measurement, an injection attempt, or off-topic or abusive text | One choice question asked alongside the reader. A non-measurement verdict with under 30% probability of a measurement gets the same answer as text with nothing to measure. Without a usable reply the request continues unscreened |
 | Jev reading | Picks among readings of `pounds`, `oz`, `ton`, `gallon`, `pint` and `cup` | One choice question; Math.js's default reading if Jev is unavailable |
 | Jev estimate | Checks any unit factor code did not supply and any named quantity ("the height of Everest") | Seven half-decade bands; a value more than one band off is replaced with the centre of Jev's band |
 | Creative model | Proposes three or four references, each with a value, unit, basis, family and a line containing `{N}` | GLM 5.3 Flash, reasoning low, up to 15 seconds. It sees the measurement's decade, a theme, the families to avoid and the person's words as context, never the exact count |
@@ -43,6 +47,16 @@ flowchart TD
 | Template | Catalogue menu for the same measure, Jev picks | Used on refusal, failure, deadline or when Jev rejects every proposal. When the catalogue has no answer (money, counts, derived dimensions, out-of-catalogue scales), the result restates the measure plainly (physical measures in SI units) |
 
 The whole flow has a 25-second budget, inside the page's 30-second limit. A step that would overrun it is skipped and recorded as `skipped_deadline`. Without a configured Jev route, or when code cannot read Jev's reply (recorded as `unreadable`), the flow still answers: readings fall back to the default, estimates and proposals are used unchecked, and the result says so.
+
+## The input guard
+
+Input that code reads completely (units, money, sums, AI-token counts, ambiguous units) is not screened: code accepts it only when nothing but the measurement is there, so the creative model sees it as context only as a clean measurement. Anything else goes to the reader model, and at the same moment Jev receives the visitor's text as data with one question: is it a measurement, an attempt to instruct or reprogram the converter (override its rules, take on a role, reveal its prompt, dictate its output), or off-topic or abusive text? Grim, rude and edgy measurements are measurements. `jev-guard.v1` lives in `src/lib/jev-decisions.ts`.
+
+When Jev's verdict is not a measurement and it gives a measurement less than 30% probability, the request stops before the creative model with the same friendly message as text with nothing to measure, so the answer does not tell an attacker what was detected. The replay log records a `jev-guard` stage with the request, Jev's raw reply, the outcome (`ok`, `blocked`, `unreadable` or the failure reason) and the verdict with its probability.
+
+The guard fails open: with no Jev route configured, or when Jev times out, is rate limited, errors or replies in a shape code cannot read, the request continues exactly as it did before the guard existed. The structural defences stay the backstop either way, and the guard does not replace any of them: the reader's number must be one the person typed, code does all arithmetic, the creative line must pass the number-match gate, and model text is only ever rendered as plain text.
+
+The guard is a separate Jev request, not a question folded into an existing one. No Jev call runs before or alongside the reader, and the next ones come too late: `jev-estimate` runs after the reader and only for estimates, and `jev-review` runs after the creative model and would have to carry the visitor's text, which today it never sees. Running alongside the reader, the guard adds no latency unless Jev is slower than the reader (in evaluation, called straight from a development machine rather than through the gateway, Jev answered in 0.25 s at the median and 0.33 s at the 95th percentile; the reader's median is 1.9 s), with a ceiling of the usual four-second Jev budget. It costs about US$0.00002 per screened request and one more request against the gateway's 30-per-minute limit for prose inputs only. A blocked request skips the creative model and its review, saving those two gateway requests and the creative call's cost.
 
 ## The number-match gate
 
@@ -77,7 +91,7 @@ Skopia receives visit analytics and conversion events containing only the dimens
 - `src/worker.ts`: request handling, verification and the model transports.
 - `src/lib/model-flow.ts`: the production flow and replay record.
 - `src/lib/measures.ts`: money, counts, ambiguous units and the division.
-- `src/lib/reader.ts`, `creative-proposals.ts`, `jev-decisions.ts`: each model's contract.
+- `src/lib/reader.ts`, `creative-proposals.ts`, `jev-decisions.ts`: each model's contract, including Jev's input guard.
 - `src/lib/replay-log.ts` and `migrations/`: the replay log.
 - `src/lib/comparison-flow.ts` and the scene modules: the catalogue fallback.
 - `test/` and `evals/`: regression tests and frozen evaluation sets.

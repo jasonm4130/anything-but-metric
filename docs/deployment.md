@@ -16,7 +16,7 @@ Update these instance-specific settings before deployment:
 | `src/pages/index.astro` | Skopia site identifier, or remove the analytics integration |
 | `.env.op` | Your account, deployment token and widget references |
 
-The production gateway uses 30 requests per minute, US$1 over a rolling day and US$5 over thirty rolling days. Set your own [gateway spend limits](https://developers.cloudflare.com/ai-gateway/features/spend-limits/) before accepting public traffic. Gateway accounting is eventually consistent; these controls are not exact billing ceilings. For the production gateway they are set in [`infra/`](#manage-the-production-gateway); no deployment command raises them. A conversion now makes two to five gateway requests (reader, creative model and up to three Jev calls), so 30 requests per minute serves roughly six to fifteen conversions a minute; beyond that, the gateway returns 429 and the Worker falls back to the catalogue or skips Jev.
+The production gateway uses 30 requests per minute, US$1 over a rolling day and US$5 over thirty rolling days. Set your own [gateway spend limits](https://developers.cloudflare.com/ai-gateway/features/spend-limits/) before accepting public traffic. Gateway accounting is eventually consistent; these controls are not exact billing ceilings. For the production gateway they are set in [`infra/`](#manage-the-production-gateway); no deployment command raises them. A conversion now makes two to six gateway requests (reader, creative model and up to four Jev calls, one of them the input guard on prose), so 30 requests per minute serves roughly five to fifteen conversions a minute; beyond that, the gateway returns 429 and the Worker falls back to the catalogue or skips Jev.
 
 ## Manage the production gateway
 
@@ -41,7 +41,7 @@ The Worker reaches models through gateway ID `anything-but-metric`:
 | Workers AI | The `AI` binding with `gateway: { id: "anything-but-metric" }` |
 | Jev decisions | `https://gateway.ai.cloudflare.com/v1/{account_id}/anything-but-metric/custom-openrouter-api/api/alpha/decisions` |
 
-The custom route covers every OpenRouter path, so chat completions use `.../custom-openrouter-api/api/v1/chat/completions`. The Worker calls Workers AI for the reader and creative models and Jev for checks and choices. It reaches Jev only when both `JEV_DECISIONS_URL` and `AI_GATEWAY_TOKEN` are installed; otherwise it answers without Jev's checks. Applying the stack does not deploy the Worker.
+The custom route covers every OpenRouter path, so chat completions use `.../custom-openrouter-api/api/v1/chat/completions`. The Worker calls Workers AI for the reader and creative models and Jev for checks, choices and screening prose input. It reaches Jev only when both `JEV_DECISIONS_URL` and `AI_GATEWAY_TOKEN` are installed; otherwise it answers without Jev's checks. Applying the stack does not deploy the Worker.
 
 ## First release of the model-led flow
 
