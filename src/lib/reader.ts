@@ -94,7 +94,7 @@ export function readMeasure(response: unknown, input: string): ReaderOutcome {
     if (/^deg[CF]$|^K$/.test(modelUnit(standardUnit)) && perUnit !== 1 && amount !== 1) return { outcome: "invalid_unit" };
   }
   const quantity = amount * perUnit;
-  if (!Number.isFinite(quantity) || (quantity === 0 && amount !== 0 && perUnit !== 0)) return { outcome: "out_of_range" };
+  if (perUnit <= 0 || !Number.isFinite(quantity) || (quantity === 0 && amount !== 0)) return { outcome: "out_of_range" };
   const measure = read.kind === "physical" ? physical(quantity, modelUnit(standardUnit))
     : read.kind === "currency" ? currency(quantity, standardUnit)
     : count(quantity, typeof read.item === "string" && read.item.trim() ? read.item : written, typeof read.items === "string" ? read.items : undefined);

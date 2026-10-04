@@ -59,7 +59,7 @@ npm run eval:live -- replay --run my-run                        # rescore stored
 npm run eval:live -- resend --live --run my-run --seq 12 --model @cf/openai/gpt-oss-120b
 ```
 
-Suites: `creative` (proposals for a measurement window and theme), `refusal` (edgy inputs, with or without the person's own words), `reader` (the production reader prompt on `--set interpretation` or `--set refusal`, scoring refusals and accuracy against gold), `estimate` (sourced entities in batches of ten), `jev-bands` and `jev-proposals` (Jev's band check on the frozen set, or on a creative run's proposals). The creative suite uses the production prompt, `creative-proposals.v2` since 4 October; the bake-off below used v1.
+Suites: `creative` (proposals for a measurement window and theme), `refusal` (edgy inputs, with or without the person's own words), `reader` (the production reader prompt on `--set interpretation` or `--set refusal`, scoring refusals and accuracy against gold), `estimate` (sourced entities in batches of ten), `jev-bands` and `jev-proposals` (Jev's band check on the frozen set, or on a creative run's proposals). The creative suite uses the production prompt, `creative-proposals.v3` since 4 October (v3 only rewords how the person's words are described); the bake-off below used v1.
 
 **Spend.** Each invocation stops before it would exceed `--max-usd` (default US$0.25) or a rolling budget computed from `evals/results/live/spend-ledger.jsonl`: `--daily-usd` 0.90 per 24 hours and `--monthly-usd` 4.50 per 30 days, both below the production gateway's caps. A failed call is charged at its worst case. Calls are paced with `--rpm` (5) and `--concurrency` (4). A stopped run resumes with the same `--run`; finished calls are skipped.
 

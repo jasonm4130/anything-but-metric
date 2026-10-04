@@ -74,7 +74,7 @@ describe("model-led flow", () => {
   it("falls back to the reviewed catalogue when Jev rejects every proposal", async () => {
     const reject = (request: DecisionsRequest) => ({ answers: Object.fromEntries(Object.entries(request.questions).map(([name, question]) => {
       const keys = Object.keys((question as { criteria: Record<string, string> }).criteria);
-      return [name, { choice: name === "pick" ? keys[0] : "band_out_of_range", probabilities: {} }];
+      return [name, { choice: keys[0], probabilities: {} }];
     })) });
     const outcome = await answer("144 J", [], models({ creative: [proposals({ ...bus, value: 2, unit: "J", line: "{N} double-decker buses, lifted gently." })] }, reject), options);
     expect(outcome.status).toBe(200);
@@ -106,9 +106,66 @@ describe("model-led flow", () => {
     const outcome = await answer("$50", [], fake, options);
     expect(outcome.body).toMatchObject({ result: { origin: "model", dimension: "money", interpretation: "50 USD", headline: "That buys 10 flat whites, extra hot." } });
     expect(outcome.record.stages[0].detail).toEqual([{ index: 0, ok: true, reasons: [] }, { index: 1, ok: false, reasons: ["dimension_mismatch"] }]);
-    const failed = await answer("£20", [], models({ creative: [new StageFailure("provider")] }), options);
-    expect(failed.status).toBe(502);
-    expect(failed.record.outcome).toBe("failed");
+  });
+
+  describe("plain fallback for money and counts the catalogue cannot cover", () => {
+    const pizzaReader = { kind: "count", amount: 3, written: "slices of pizza", perUnit: 1, standardUnit: "count", estimated: false, item: "slice of pizza", items: "slices of pizza", subject: "pizza slices" };
+    const pizza = { label: "large pizzas", singular: "large pizza", value: 8, unit: "count", basis: "A large pizza is cut into eight slices.", family: "pizza", line: "That's {N} large pizzas." };
+    const coffee = { label: "flat whites", singular: "flat white", value: 5, unit: "GBP", basis: "A flat white costs about five pounds.", family: "coffee", line: "That buys {N} flat whites." };
+    const refusal = { response: "I'm sorry, but I can't help with that." };
+    const reject = (request: DecisionsRequest) => ({ answers: Object.fromEntries(Object.entries(request.questions).map(([name, question]) => {
+      const keys = Object.keys((question as { criteria: Record<string, string> }).criteria);
+      return [name, { choice: keys[0], probabilities: {} }];
+    })) });
+    const cases = [
+      { input: "£20", reader: [], proposal: coffee, interpretation: "20 GBP", headline: "That's 20 GBP. No comparison this time, just the number." },
+      { input: "3 slices of pizza", reader: [{ response: pizzaReader }], proposal: pizza, interpretation: "3 slices of pizza", headline: "That's 3 slices of pizza. No comparison this time, just the number." }
+    ];
+    for (const { input, reader, proposal, interpretation, headline } of cases) {
+      it(`restates ${input} plainly after a creative refusal`, async () => {
+        const outcome = await answer(input, [], models({ reader, creative: [refusal] }), options);
+        expect(outcome.status).toBe(200);
+        expect(outcome.body).toMatchObject({ result: { origin: "plain", interpretation, headline, sources: [] } });
+        expect(outcome.record).toMatchObject({ outcome: "template", refused: true, result: { origin: "plain" } });
+      });
+
+      it(`restates ${input} plainly when Jev rejects every proposal`, async () => {
+        const outcome = await answer(input, [], models({ reader, creative: [proposals(proposal)] }, reject), options);
+        expect(outcome.status).toBe(200);
+        expect(outcome.body).toMatchObject({ result: { origin: "plain", interpretation, headline } });
+        expect(outcome.record.stages.find(stage => stage.stage === "jev-review")?.outcome).toBe("rejected_all");
+      });
+    }
+
+    it("restates a provider failure plainly in SI units", async () => {
+      const outcome = await answer("1e50 kg", [], models({ creative: [new StageFailure("provider")] }), options);
+      expect(outcome.status).toBe(200);
+      expect(outcome.body).toMatchObject({ result: { origin: "plain", dimension: "mass" } });
+    });
+  });
+
+  it("uses the first valid proposal unchecked when Jev's reply cannot be read", async () => {
+    const outcome = await answer("40 tonnes", [], models({ creative: [proposals(bus, whale)] }, () => ({ answers: { band_1: { verdict: "fine" } } })), options);
+    expect(outcome.status).toBe(200);
+    expect(outcome.body).toMatchObject({ result: { origin: "model", headline: "That's 3.33 double-decker buses parked nose to tail." } });
+    expect((outcome.body as { result: { assumption: string } }).result.assumption).not.toContain("Jev sanity-checked");
+    expect(outcome.record.stages.find(stage => stage.stage === "jev-review")?.outcome).toBe("unreadable");
+  });
+
+  it("rejects a reader factor of zero cleanly instead of crashing", async () => {
+    const ghost = { kind: "physical", amount: 1, written: "ghost", perUnit: 0, standardUnit: "kg", estimated: true, item: "", items: "", subject: "the weight of a ghost" };
+    const outcome = await answer("the weight of a ghost", [], models({ reader: [{ response: ghost }] }), options);
+    expect(outcome.status).toBe(422);
+    expect(outcome.record).toMatchObject({ outcome: "rejected", stages: [{ stage: "reader", outcome: "out_of_range" }] });
+  });
+
+  it("turns an unexpected throw into a failed answer with its replay record", async () => {
+    const broken = models({ creative: [proposals(bus)] });
+    Object.defineProperty(broken, "jev", { get: () => { throw new RangeError("boom"); } });
+    const outcome = await answer("40 tonnes", [], broken, options);
+    expect(outcome.status).toBe(500);
+    expect(outcome.body).toEqual({ error: "The imagination engine came back empty-handed. Please try again." });
+    expect(outcome.record).toMatchObject({ outcome: "failed", status: 500, error: "unexpected: boom", stages: [{ stage: "creative", outcome: "ok" }] });
   });
 
   it("reads counts and food portions with the reader, then divides by items per reference", async () => {

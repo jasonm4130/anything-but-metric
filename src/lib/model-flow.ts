@@ -1,3 +1,4 @@
+import { unit } from "mathjs";
 import { parseTokenUsage, tokenComparisonMenu, tokenComparisonResult } from "./ai-tokens";
 import { comparisonMenu, comparisonResult, type ComparisonPacket, type ComparisonResult } from "./comparison-flow";
 import { formatNumber, validateMeasurement } from "./convert";
@@ -11,7 +12,8 @@ import { recentFamilyLimit } from "./scene-packets";
 /**
  * Production conversion flow. A creative model proposes references with estimated values,
  * Jev checks those values and chooses the reference, and code keeps only the arithmetic.
- * The reviewed catalogue is the template fallback when the creative step fails or refuses.
+ * The reviewed catalogue is the template fallback when the creative step fails or refuses,
+ * and a plain restatement of the measure covers what the catalogue cannot.
  * Every stage is recorded so questions and responses can be replayed later.
  */
 
@@ -46,7 +48,7 @@ export type ReplayRecord = {
   measure?: Measure; stages: StageRecord[];
   result?: { packetId: string; origin: string; headline: string; family: string }; error?: string;
 };
-export type ModelResult = ComparisonResult & { origin: "model" | "catalogue" };
+export type ModelResult = ComparisonResult & { origin: "model" | "catalogue" | "plain" };
 export type FlowAnswer = { status: number; body: { result: ModelResult | ComparisonResult } | { error: string }; record: ReplayRecord };
 
 const messages = {
@@ -54,7 +56,7 @@ const messages = {
   readerDown: "The measurement reader is unavailable. Please try again.",
   busy: "The comparison engine is busy. Please try again shortly.",
   gap: "I don't have a useful comparison at that scale yet. Try another measurement.",
-  empty: "The imagination engine came back empty-handed. Please try again."
+  failed: "The imagination engine came back empty-handed. Please try again."
 };
 
 const maxStored = 12_000;
@@ -89,13 +91,12 @@ export function modelResult(measure: Measure, check: ProposalCheck, proposal: Cr
   const family = slug(proposal.family);
   const interpretation = describeMeasure(measure);
   const unitText = measure.kind === "count" ? (proposal.value === 1 ? measure.item : measure.items) : proposal.unit.trim();
-  const estimateNote = measure.estimate ? ` The measurement itself is an estimate: one ${measure.estimate.written} ≈ ${formatNumber(measure.estimate.perUnit)} ${measure.estimate.perUnitUnit === "count" ? measure.items : measure.estimate.perUnitUnit}.` : "";
   return {
     packetId: `model:${family}:${slug(proposal.singular)}`,
     family,
     headline: check.text as string,
     assumption: `One ${proposal.singular.trim()} ≈ ${formatNumber(proposal.value)} ${unitText}: ${proposal.basis.trim()} This is a model's estimate${checkedByJev ? " that Jev sanity-checked" : ""}, not a sourced fact.`,
-    basis: `${interpretation} ÷ ${formatNumber(proposal.value)} ${unitText} per ${proposal.singular.trim()} ≈ ${check.displayCount}. Code did the division; the reference size is estimated.${estimateNote}`,
+    basis: `${interpretation} ÷ ${formatNumber(proposal.value)} ${unitText} per ${proposal.singular.trim()} ≈ ${check.displayCount}. Code did the division; the reference size is estimated.${estimateNote(measure)}`,
     sources: [],
     dimension: measure.dimension,
     quantity: measure.quantity,
@@ -103,6 +104,38 @@ export function modelResult(measure: Measure, check: ProposalCheck, proposal: Cr
     interpretation,
     recentFamilies: [...history.filter(entry => entry !== family), family].slice(-recentFamilyLimit),
     origin: "model"
+  };
+}
+
+const estimateNote = (measure: Measure) => measure.estimate ? ` The measurement itself is an estimate: one ${measure.estimate.written} ≈ ${formatNumber(measure.estimate.perUnit)} ${measure.estimate.perUnitUnit === "count" ? measure.items : measure.estimate.perUnitUnit}.` : "";
+
+function siText(measure: Measure): string | undefined {
+  if (measure.kind !== "physical" || measure.dimension === "temperature") return undefined;
+  try {
+    const si = unit(measure.quantity, measure.unit).toSI();
+    return `${formatNumber(si.toNumber())} ${si.formatUnits()}`;
+  } catch {
+    return undefined;
+  }
+}
+
+/** The fallback when no comparison survives: the measure restated plainly, with no estimate added. */
+export function plainResult(measure: Measure, history: string[]): ModelResult {
+  const interpretation = describeMeasure(measure);
+  const restated = siText(measure) ?? interpretation;
+  return {
+    packetId: `plain:${slug(measure.dimension)}`,
+    family: "plain",
+    headline: `That's ${restated}. No comparison this time, just the number.`,
+    assumption: "No playful comparison survived the checks, so this is the measurement restated plainly.",
+    basis: `${interpretation} = ${restated}. Code did the unit conversion.${estimateNote(measure)}`,
+    sources: [],
+    dimension: measure.dimension,
+    quantity: measure.quantity,
+    sourceUnit: measure.unit,
+    interpretation,
+    recentFamilies: history.slice(-recentFamilyLimit),
+    origin: "plain"
   };
 }
 
@@ -133,13 +166,20 @@ async function askJev(context: Context, stage: StageName, state: unknown, questi
   return call.value;
 }
 
+/** A reply Jev sent that code cannot read is recorded as unreadable and handled as if Jev were unavailable. */
+function unreadable(context: Context, response: unknown): void {
+  if (response !== undefined) context.stages.at(-1)!.outcome = "unreadable";
+}
+
 /** Jev picks among catalogue packets; without Jev the seeded menu order decides. */
 async function pickPacket(context: Context, menu: ComparisonPacket[], measurement: string): Promise<ComparisonPacket> {
   if (menu.length === 1) return menu[0];
   const ids = menu.map((packet, index) => ({ key: `option_${index + 1}`, packet }));
   const response = await askJev(context, "jev-template", { task: "Choose the comparison that makes a measurement easiest and most fun to picture.", measurement }, { pick: pickQuestion(ids.map(({ key, packet }) => ({ id: key, description: packet.headline }))) });
   const choice = choiceAnswer(response, "pick")?.choice;
-  return ids.find(entry => entry.key === choice)?.packet ?? menu[0];
+  const picked = ids.find(entry => entry.key === choice)?.packet;
+  if (!picked) unreadable(context, response);
+  return picked ?? menu[0];
 }
 
 async function template(context: Context, measure: Measure, seed: number): Promise<ComparisonResult | undefined> {
@@ -163,7 +203,9 @@ async function interpret(context: Context): Promise<{ measure?: Measure; status?
   if (readings) {
     const response = await askJev(context, "jev-reading", { measurement: input }, { reading: readingQuestion(readings) });
     const choice = choiceAnswer(response, "reading")?.choice;
-    return { measure: readings.find(reading => reading.id === choice)?.measure ?? readings[0].measure };
+    const chosen = readings.find(reading => reading.id === choice)?.measure;
+    if (!chosen) unreadable(context, response);
+    return { measure: chosen ?? readings[0].measure };
   }
   let needsReader = false;
   const local = await interpretMeasurement(input, async () => {
@@ -203,9 +245,12 @@ async function interpret(context: Context): Promise<{ measure?: Measure; status?
   const answer = choiceAnswer(response, "estimate");
   const verdict = bandVerdict(check, answer, 0);
   context.stages.at(-1)!.detail = { proposedKey: check.proposedKey, ...verdict };
-  if (!answer || withinBands(verdict)) return { measure: read.measure };
-  const corrected = chosenBandValue(check, answer);
-  if (!corrected) return { measure: read.measure };
+  if (verdict.bandDistance === undefined) {
+    unreadable(context, response);
+    return { measure: read.measure };
+  }
+  if (withinBands(verdict)) return { measure: read.measure };
+  const corrected = chosenBandValue(check, answer)!;
   const scale = corrected / estimate.perUnit;
   return { measure: { ...read.measure, quantity: read.measure.quantity * scale, estimate: { ...estimate, perUnit: corrected } } };
 }
@@ -228,8 +273,14 @@ async function review(context: Context, measure: Measure, valid: { check: Propos
   const verdicts = checks.map((check, index) => ({ ...bandVerdict(check, choiceAnswer(response, `band_${index + 1}`), 0), proposedKey: check.proposedKey }));
   const pick = choiceAnswer(response, "pick");
   context.stages.at(-1)!.detail = { verdicts, pick: pick?.choice };
-  const accepted = valid.map((entry, index) => ({ ...entry, index, verdict: verdicts[index] })).filter(entry => withinBands(entry.verdict));
+  const entries = valid.map((entry, index) => ({ ...entry, index, verdict: verdicts[index] }));
+  const accepted = entries.filter(entry => withinBands(entry.verdict));
   if (!accepted.length) {
+    const unchecked = entries.find(entry => entry.verdict.bandDistance === undefined);
+    if (unchecked) {
+      unreadable(context, response);
+      return { check: unchecked.check, proposal: unchecked.proposal, checkedByJev: false };
+    }
     context.stages.at(-1)!.outcome = "rejected_all";
     return undefined;
   }
@@ -259,51 +310,59 @@ export async function answer(input: string, history: string[], models: Models, o
     return { status, body, record };
   };
 
-  const tokens = parseTokenUsage(input);
-  if (tokens?.kind === "invalid") return finish(422, { error: tokens.message }, "rejected");
-  if (tokens) {
-    const menu = tokenComparisonMenu(tokens, history, options.seed);
-    if (!menu.length) return finish(422, { error: messages.gap }, "rejected");
-    const packet = await pickPacket(context, menu, input);
-    return finish(200, { result: tokenComparisonResult(packet, tokens, history) }, "tokens");
-  }
+  const run = async (): Promise<FlowAnswer> => {
+    const tokens = parseTokenUsage(input);
+    if (tokens?.kind === "invalid") return finish(422, { error: tokens.message }, "rejected");
+    if (tokens) {
+      const menu = tokenComparisonMenu(tokens, history, options.seed);
+      if (!menu.length) return finish(422, { error: messages.gap }, "rejected");
+      const packet = await pickPacket(context, menu, input);
+      return finish(200, { result: tokenComparisonResult(packet, tokens, history) }, "tokens");
+    }
 
-  const interpreted = await interpret(context);
-  if (!interpreted.measure) return finish(interpreted.status ?? 422, { error: interpreted.error ?? messages.unrecognised }, interpreted.status === 422 ? "rejected" : "failed");
-  const measure = interpreted.measure;
-  const fallback = async (reason: string): Promise<FlowAnswer> => {
-    const result = await template(context, measure, options.seed);
-    if (result) return finish(200, { result: { ...result, origin: "catalogue" } }, "template", measure);
-    return finish(reason === "coverage" ? 422 : 502, { error: reason === "coverage" ? messages.gap : messages.empty }, reason === "coverage" ? "rejected" : "failed", measure);
+    const interpreted = await interpret(context);
+    if (!interpreted.measure) return finish(interpreted.status ?? 422, { error: interpreted.error ?? messages.unrecognised }, interpreted.status === 422 ? "rejected" : "failed");
+    const measure = interpreted.measure;
+    const fallback = async (): Promise<FlowAnswer> => {
+      const result = await template(context, measure, options.seed);
+      return finish(200, { result: result ? { ...result, origin: "catalogue" } : plainResult(measure, history) }, "template", measure);
+    };
+
+    const window = measureWindow(measure);
+    if (!window) return fallback();
+    const creativeBudget = Math.min(budgets.creativeMaxMs, budgets.totalMs - context.elapsed() - budgets.jevMs - 500);
+    if (creativeBudget < budgets.creativeMinMs) {
+      context.stages.push({ stage: "creative", model: creativeModel, promptVersion: creativePromptVersion, latencyMs: 0, outcome: "skipped_deadline" });
+      return fallback();
+    }
+    const theme = themes[Math.floor(next() * themes.length)];
+    const userContent = creativeProposalInput(window, theme, input, history);
+    const body = { messages: [{ role: "system", content: creativeProposalPrompt }, { role: "user", content: userContent }], response_format: { type: "json_schema", json_schema: creativeProposalSchema }, ...creativeOptions };
+    const call = await timed(context, () => models.workersAi(creativeModel, body, creativeBudget));
+    if (call.failure) {
+      context.stages.push({ stage: "creative", model: creativeModel, promptVersion: creativePromptVersion, latencyMs: call.latencyMs, outcome: call.failure.reason, request: userContent, response: bounded(call.failure.response) });
+      return fallback();
+    }
+    const scored = scoreCreativeResponse(call.value, measure);
+    context.stages.push({ stage: "creative", model: creativeModel, promptVersion: creativePromptVersion, latencyMs: call.latencyMs, outcome: scored.outcome, request: userContent, response: bounded(call.value), detail: scored.checks.map(check => ({ index: check.index, ok: check.ok, reasons: check.reasons })) });
+    if (scored.outcome !== "ok") return fallback();
+
+    const proposals = proposalsOf(call.value) as CreativeProposal[];
+    const valid = scored.checks.filter(check => check.ok).map(check => ({ check, proposal: proposals[check.index] }));
+    const chosen = await review(context, measure, valid);
+    if (!chosen) return fallback();
+    // Recompute from the proposal itself so the displayed number is exactly the code's division.
+    const recheck = checkProposalFor(chosen.proposal, chosen.check.index, measure);
+    if (!recheck.ok) return fallback();
+    return finish(200, { result: modelResult(measure, recheck, chosen.proposal, chosen.checkedByJev, history) }, "model", measure);
   };
-
-  const window = measureWindow(measure);
-  if (!window) return fallback("coverage");
-  const creativeBudget = Math.min(budgets.creativeMaxMs, budgets.totalMs - context.elapsed() - budgets.jevMs - 500);
-  if (creativeBudget < budgets.creativeMinMs) {
-    context.stages.push({ stage: "creative", model: creativeModel, promptVersion: creativePromptVersion, latencyMs: 0, outcome: "skipped_deadline" });
-    return fallback("deadline");
+  try {
+    return await run();
+  } catch (cause) {
+    const failed = finish(500, { error: messages.failed }, "failed");
+    failed.record.error = `unexpected: ${cause instanceof Error ? cause.message : String(cause)}`;
+    return failed;
   }
-  const theme = themes[Math.floor(next() * themes.length)];
-  const userContent = creativeProposalInput(window, theme, input, history);
-  const body = { messages: [{ role: "system", content: creativeProposalPrompt }, { role: "user", content: userContent }], response_format: { type: "json_schema", json_schema: creativeProposalSchema }, ...creativeOptions };
-  const call = await timed(context, () => models.workersAi(creativeModel, body, creativeBudget));
-  if (call.failure) {
-    context.stages.push({ stage: "creative", model: creativeModel, promptVersion: creativePromptVersion, latencyMs: call.latencyMs, outcome: call.failure.reason, request: userContent, response: bounded(call.failure.response) });
-    return fallback(call.failure.reason);
-  }
-  const scored = scoreCreativeResponse(call.value, measure);
-  context.stages.push({ stage: "creative", model: creativeModel, promptVersion: creativePromptVersion, latencyMs: call.latencyMs, outcome: scored.outcome, request: userContent, response: bounded(call.value), detail: scored.checks.map(check => ({ index: check.index, ok: check.ok, reasons: check.reasons })) });
-  if (scored.outcome !== "ok") return fallback(scored.outcome);
-
-  const proposals = proposalsOf(call.value) as CreativeProposal[];
-  const valid = scored.checks.filter(check => check.ok).map(check => ({ check, proposal: proposals[check.index] }));
-  const chosen = await review(context, measure, valid);
-  if (!chosen) return fallback("rejected_all");
-  // Recompute from the proposal itself so the displayed number is exactly the code's division.
-  const recheck = checkProposalFor(chosen.proposal, chosen.check.index, measure);
-  if (!recheck.ok) return fallback("number_mismatch");
-  return finish(200, { result: modelResult(measure, recheck, chosen.proposal, chosen.checkedByJev, history) }, "model", measure);
 }
 
 function proposalsOf(response: unknown): unknown[] {

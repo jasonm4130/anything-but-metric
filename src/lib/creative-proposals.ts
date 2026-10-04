@@ -4,12 +4,12 @@ import { modelUnit, physical, referenceRatio, type Measure, type RatioCheck } fr
 
 /**
  * Contract for a creative model that proposes fresh comparison references.
- * The model sees a dimension, a size window and a theme, never the exact quantity
- * or the final count. Code converts units, divides, and fills the {N} placeholder.
+ * The model sees a dimension, a size window, a theme and the person's own words, but
+ * never writes the count. Code converts units, divides, and fills the {N} placeholder.
  * The Worker's model-led flow and the live evaluation harness share this contract.
  */
 
-export const creativePromptVersion = "creative-proposals.v2";
+export const creativePromptVersion = "creative-proposals.v3";
 export const proposalRatioRange = { min: 0.1, max: 1000 } as const;
 export const proposalLimits = { label: 80, singular: 80, unit: 24, basis: 200, family: 40, line: 160 } as const;
 export const countPlaceholder = "{N}";
@@ -65,7 +65,7 @@ export function measureWindow(measure: Measure): MagnitudeWindow | undefined {
 }
 
 export const creativeProposalPrompt = `You invent playful, picturable comparison references for a toy that turns a measurement into an absurd comparison.
-You receive a dimension, a size window and a theme. The dimension is a physical quantity, an amount of money in one currency, or a count of a named item. You never see the exact measurement; code later divides it by your reference value and fills in the count.
+You receive a dimension, a size window and a theme. The dimension is a physical quantity, an amount of money in one currency, or a count of a named item. You may also receive the person's words as context. Never calculate or write the count yourself; code later divides the measurement by your reference value and fills in the count.
 Propose 4 different real, recognisable things whose single-item value fits the reference window. Prefer vivid, surprising, everyday-imaginable things over obscure ones, and vary the subjects. Skip any family listed in avoid.
 For each proposal return:
 - label: plural noun phrase as it reads after a count, e.g. "double-decker buses"

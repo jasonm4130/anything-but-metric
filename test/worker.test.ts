@@ -213,7 +213,7 @@ describe("/api/convert", () => {
 
   it("gives the creative model a try at scales the catalogue cannot reach", async () => {
     const empty = env();
-    expect((await convert(request({ measurement: "1e50 kg" }), empty)).status).toBe(502);
+    await expect((await convert(request({ measurement: "1e50 kg" }), empty)).json()).resolves.toMatchObject({ result: { origin: "plain", dimension: "mass" } });
     expect(empty.aiRun).toHaveBeenCalledTimes(1);
     const stars = env([{ proposals: [{ ...bus, label: "Suns", singular: "Sun", value: 2e30, unit: "kg", line: "{N} Suns on a cosmic bathroom scale." }] }]);
     await expect((await convert(request({ measurement: "1e33 kg" }), stars)).json()).resolves.toMatchObject({ result: { headline: "500 Suns on a cosmic bathroom scale." } });
