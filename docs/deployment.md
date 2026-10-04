@@ -10,13 +10,13 @@ Update these instance-specific settings before deployment:
 
 | File | Setting |
 | --- | --- |
-| `wrangler.jsonc` | Worker name, custom-domain route and rate-limit namespace |
+| `wrangler.jsonc` | Worker name, custom-domain route, rate-limit namespace and replay database |
 | `astro.config.mjs` | Canonical site URL |
-| `src/worker.ts` | `TURNSTILE_HOSTNAME` and gateway ID passed to `runStage` |
+| `src/worker.ts` | `TURNSTILE_HOSTNAME` and `GATEWAY_ID` |
 | `src/pages/index.astro` | Skopia site identifier, or remove the analytics integration |
 | `.env.op` | Your account, deployment token and widget references |
 
-The production gateway uses 30 requests per minute, US$1 over a rolling day and US$5 over thirty rolling days. Set your own [gateway spend limits](https://developers.cloudflare.com/ai-gateway/features/spend-limits/) before accepting public traffic. Gateway accounting is eventually consistent; these controls are not exact billing ceilings. For the production gateway they are set in [`infra/`](#manage-the-production-gateway); no deployment command raises them.
+The production gateway uses 30 requests per minute, US$1 over a rolling day and US$5 over thirty rolling days. Set your own [gateway spend limits](https://developers.cloudflare.com/ai-gateway/features/spend-limits/) before accepting public traffic. Gateway accounting is eventually consistent; these controls are not exact billing ceilings. For the production gateway they are set in [`infra/`](#manage-the-production-gateway); no deployment command raises them. A conversion now makes two to five gateway requests (reader, creative model and up to three Jev calls), so 30 requests per minute serves roughly six to fifteen conversions a minute; beyond that, the gateway returns 429 and the Worker falls back to the catalogue or skips Jev.
 
 ## Manage the production gateway
 
@@ -41,7 +41,30 @@ The Worker reaches models through gateway ID `anything-but-metric`:
 | Workers AI | The `AI` binding with `gateway: { id: "anything-but-metric" }` |
 | Jev decisions | `https://gateway.ai.cloudflare.com/v1/{account_id}/anything-but-metric/custom-openrouter-api/api/alpha/decisions` |
 
-The custom route covers every OpenRouter path, so chat completions use `.../custom-openrouter-api/api/v1/chat/completions`. The current Worker calls only Workers AI. Applying the stack does not deploy the Worker.
+The custom route covers every OpenRouter path, so chat completions use `.../custom-openrouter-api/api/v1/chat/completions`. The Worker calls Workers AI for the reader and creative models and Jev for checks and choices. It reaches Jev only when both `JEV_DECISIONS_URL` and `AI_GATEWAY_TOKEN` are installed; otherwise it answers without Jev's checks. Applying the stack does not deploy the Worker.
+
+## First release of the model-led flow
+
+The model-led Worker needs these once, before or with its first release:
+
+1. Apply the `infra/` stack so the custom OpenRouter route and its stored key exist, then send one decision request through it (see [`infra/README.md`](../infra/README.md#plan-and-apply)).
+2. Create a gateway token: a Cloudflare API token with **AI Gateway Run** for the `anything-but-metric` gateway. Store it in 1Password and point `AI_GATEWAY_TOKEN` and `JEV_DECISIONS_URL` in `.env.op` at it and at the decisions route.
+3. Create the replay database and its table:
+
+   ```sh
+   op run --env-file=.env.op -- npx wrangler d1 create anything-but-metric-replay
+   ```
+
+   Add the printed `database_id` to the `REPLAY_LOG` entry in `wrangler.jsonc`, then apply the migration:
+
+   ```sh
+   op run --env-file=.env.op -- npm run db:migrate
+   ```
+
+   The deploy token needs **D1 Edit** for this. A Worker without the table still converts; each failed log write is reported in Workers Logs.
+4. Install the secrets with `npm run secrets:sync` (below). It sends `TURNSTILE_SECRET_KEY`, `JEV_DECISIONS_URL` and `AI_GATEWAY_TOKEN` when they are loaded.
+
+The replay log stores people's measurement text for 30 days. Keep the database private to the maintainer account.
 
 ## Load configuration
 
@@ -59,7 +82,7 @@ op run --env-file=.env.op -- npx wrangler deploy
 op run --env-file=.env.op -- npm run secrets:sync
 ```
 
-The API will reject verification until its Worker secret is installed. `secrets:sync` sends only the Turnstile secret to Wrangler over standard input; it does not print the value or write a plaintext file. It does not install the Cloudflare API token into the Worker.
+The API will reject verification until its Worker secret is installed. `secrets:sync` sends the Turnstile secret, and the Jev route and gateway token when loaded, to Wrangler over standard input; it does not print the values or write a plaintext file. It does not install the Cloudflare API token into the Worker.
 
 ## Release an existing instance
 
@@ -80,6 +103,6 @@ CI runs tests and a keyless build only. It does not deploy the app. Do not use t
 
 ## Verify and roll back
 
-Open the deployed domain. Wait for verification, convert `144 jouls`, then convert `2 PB`. Confirm that the button becomes ready again and the calculation details open. A direct request without a Turnstile token should return 403. Results may vary because the selector chooses among multiple valid comparisons.
+Open the deployed domain. Wait for verification, convert `144 jouls`, then `$50`, `3 slices of pizza` and `2 PB`. Confirm that the button becomes ready again and the calculation details open. Then check the replay log received rows and Jev ran: `npm run replay -- pull --days 1 --out release-check` followed by `npm run replay -- summary --file release-check` should show `jev-review` stages with outcome `ok`, not `unavailable`. A direct request without a Turnstile token should return 403. Results vary by design: the creative model proposes new comparisons each time.
 
 Record the active version before each release with `npx wrangler deployments list`. If a release fails verification, redeploy the previous known-good version with `npx wrangler versions deploy <previous-version-id>@100 --yes`, using the same configured account. Record the failed version and the observed behavior before changing code.

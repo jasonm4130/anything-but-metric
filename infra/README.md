@@ -26,7 +26,7 @@ the stored key only when that header is absent.
 
 | Use | Route |
 | --- | --- |
-| Workers AI (creative generation) | Unchanged: `env.AI.run(model, input, { gateway: { id: "anything-but-metric" } })` |
+| Workers AI (reader and creative models) | `env.AI.run(model, input, { gateway: { id: "anything-but-metric" } })` |
 | Jev decisions (`typesafe/jev-1.13`) | `POST .../anything-but-metric/custom-openrouter-api/api/alpha/decisions` |
 
 Cloudflare documents the native [OpenRouter route](https://developers.cloudflare.com/ai-gateway/usage/providers/openrouter/)
@@ -43,7 +43,8 @@ One detail is not yet proven against the live account. The provider slug used fo
 custom provider's stored key is assumed to be `custom-openrouter-api`. Cloudflare's
 docs do not say whether it is that or the bare slug. Check the gateway's **Provider
 Keys** page after apply and send one decision request. If no key is attached, change
-the slug in `openrouter.tf`. Worker code that calls Jev is a separate later change.
+the slug in `openrouter.tf`. The Worker calls this route once `JEV_DECISIONS_URL` and
+`AI_GATEWAY_TOKEN` are installed as Worker secrets.
 
 ## Provider choices
 

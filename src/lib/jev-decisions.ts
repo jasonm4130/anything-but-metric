@@ -4,7 +4,8 @@ import { formatNumber } from "./convert";
  * Question builders and response readers for Jev, TypeSafe's decision model,
  * served by OpenRouter's alpha Decisions API (POST /api/alpha/decisions).
  * Jev answers only within supplied criteria, so it cannot return a refusal string.
- * Not wired into the Worker: the live evaluation harness uses these to calibrate checks.
+ * The Worker's model-led flow asks these questions in production; the live evaluation
+ * harness uses the same builders to calibrate them.
  */
 
 export const jevModel = "typesafe/jev-1.13";
@@ -12,6 +13,11 @@ export const jevQuestionVersion = "jev-decisions.v1";
 export const bandCount = 7;
 /** Each band spans half a decade, so a 3x error moves a value about one band. */
 export const bandWidthDecades = 0.5;
+/**
+ * Production accepts an estimate when Jev's chosen band is within this many bands of the
+ * proposal's band (about a factor of three either way). Calibrate with the jev-bands suite.
+ */
+export const bandTolerance = 1;
 
 export type DecisionQuestion =
   | { type: "choice"; instructions: string; criteria: Record<string, string> }
@@ -25,7 +31,7 @@ export type BandCheck = { question: DecisionQuestion; bands: Band[]; proposedKey
  * Seven contiguous half-decade bands around a proposed value. `position` places the
  * proposal's band among the seven so it is not always the middle option.
  */
-export function bandCheckQuestion(subject: { thing: string; dimension: string; value: number; unit: string }, position: number): BandCheck {
+export function bandCheckQuestion(subject: { thing: string; dimension: string; value: number; unit: string; instructions?: string }, position: number): BandCheck {
   if (!Number.isInteger(position) || position < 0 || position >= bandCount) throw new RangeError("band position out of range");
   if (!Number.isFinite(subject.value) || subject.value <= 0) throw new RangeError("value must be positive");
   const centre = Math.log10(subject.value);
@@ -35,7 +41,7 @@ export function bandCheckQuestion(subject: { thing: string; dimension: string; v
   });
   const criteria = Object.fromEntries(bands.map(band => [band.key, `between ${formatNumber(band.low)} and ${formatNumber(band.high)} ${subject.unit}`]));
   return {
-    question: { type: "choice", instructions: `Which range contains the typical ${subject.dimension} of one ${subject.thing}?`, criteria },
+    question: { type: "choice", instructions: subject.instructions ?? `Which range contains the typical ${subject.dimension} of one ${subject.thing}?`, criteria },
     bands,
     proposedKey: bands[position].key
   };
@@ -64,6 +70,27 @@ export function pickQuestion(candidates: { id: string; description: string }[]):
     instructions: "Which comparison would make the measurement easiest and most fun to picture?",
     criteria: Object.fromEntries(candidates.map(candidate => [candidate.id, candidate.description]))
   };
+}
+
+/** Which reading of an ambiguous unit the person most likely meant. */
+export function readingQuestion(readings: { id: string; description: string }[]): DecisionQuestion {
+  if (readings.length < 2 || readings.length > 255) throw new RangeError("a reading question needs 2 to 255 readings");
+  return {
+    type: "choice",
+    instructions: "The state holds a measurement someone typed into a playful unit converter. Which reading of its unit did they most likely mean?",
+    criteria: Object.fromEntries(readings.map(reading => [reading.id, reading.description]))
+  };
+}
+
+/** Accept when Jev's chosen band sits within `tolerance` bands of the proposed band. */
+export function withinBands(verdict: { bandDistance?: number }, tolerance = bandTolerance): boolean {
+  return verdict.bandDistance !== undefined && Math.abs(verdict.bandDistance) <= tolerance;
+}
+
+/** Geometric centre of the band Jev chose, used to correct an estimate Jev rejected. */
+export function chosenBandValue(check: BandCheck, answer: ChoiceAnswer | undefined): number | undefined {
+  const band = check.bands.find(entry => entry.key === answer?.choice);
+  return band ? Math.sqrt(band.low * band.high) : undefined;
 }
 
 export function decisionsRequest(state: unknown, questions: Record<string, DecisionQuestion>, model = jevModel): DecisionsRequest {

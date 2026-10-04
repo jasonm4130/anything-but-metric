@@ -10,7 +10,8 @@
 //   node scripts/live-eval.mjs replay  --run bakeoff-1                 (offline rescoring with current code)
 //   node scripts/live-eval.mjs resend  --live --run bakeoff-1 --seq 12 [--model m]
 //
-// Suites: creative, refusal, estimate, jev-bands, jev-proposals (needs --from <creative run>).
+// Suites: creative, refusal, estimate, reader (--set interpretation|refusal), jev-bands,
+// jev-proposals (needs --from <creative run>).
 // Options: --every K samples every Kth case; --context with|none|both (refusal suite);
 // --rpm 5 and --concurrency 4 pace calls under the research gateway's rate limit;
 // --max-usd (per invocation), --daily-usd and --monthly-usd (rolling, from spend-ledger.jsonl)
@@ -111,7 +112,7 @@ const round = (value, digits = 4) => value === undefined ? undefined : Number(va
 
 export async function loadEngine() {
   const dir = await mkdtemp(resolve(tmpdir(), 'abm-live-eval-'));
-  await build({ stdin: { contents: 'export * from "./src/lib/creative-proposals"; export * from "./src/lib/jev-decisions"; export * from "./src/lib/convert"; export { unit } from "mathjs";', resolveDir: process.cwd() }, bundle: true, platform: 'node', format: 'esm', outfile: resolve(dir, 'engine.mjs'), logLevel: 'error' });
+  await build({ stdin: { contents: 'export * from "./src/lib/creative-proposals"; export * from "./src/lib/jev-decisions"; export * from "./src/lib/convert"; export * from "./src/lib/reader"; export { unit } from "mathjs";', resolveDir: process.cwd() }, bundle: true, platform: 'node', format: 'esm', outfile: resolve(dir, 'engine.mjs'), logLevel: 'error' });
   const engine = await import(pathToFileURL(resolve(dir, 'engine.mjs')));
   await rm(dir, { recursive: true, force: true });
   return engine;
@@ -152,6 +153,16 @@ export async function planSuite(E, suite, options) {
       const batch = items.slice(start, start + size);
       for (const model of selected) jobs.push({ suite, caseId: `batch-${start / size + 1}`, condition: 'batch', model, gold: batch.map(item => ({ id: item.id, gold: item.gold })),
         request: { messages: [{ role: 'system', content: E.estimatePrompt }, { role: 'user', content: JSON.stringify({ items: batch.map(item => ({ id: item.id, thing: item.thing, dimension: item.dimension })) }) }], response_format: { type: 'json_schema', json_schema: E.estimateSchema(batch.length) }, temperature: 0 } });
+    }
+  } else if (suite === 'reader') {
+    // The production reader prompt on prose: interpretation gold, or edgy refusal-set inputs.
+    const setName = options.set ?? 'interpretation';
+    if (!['interpretation', 'refusal'].includes(setName)) throw new Error('--set must be interpretation or refusal');
+    const set = await readJson(`evals/sets/${setName}.json`);
+    for (const item of sample(set.cases)) {
+      if (item.gold?.[1] === 'ratio') continue;
+      for (const model of selected) jobs.push({ suite, caseId: item.id, condition: setName, model, input: item.input, gold: item.reject ? 'reject' : [item.gold, ...(item.alternatives ?? [])], toleranceDecades: item.toleranceDecades,
+        request: { messages: [{ role: 'system', content: E.readerPrompt }, { role: 'user', content: item.input }], response_format: { type: 'json_schema', json_schema: E.readerSchema }, temperature: 0 } });
     }
   } else if (suite === 'jev-bands') {
     const entities = new Map((await readJson('evals/sets/estimate-entities.json')).items.map(item => [item.id, item]));
@@ -200,6 +211,22 @@ export function scoreRecord(E, record) {
     const finish = record.response?.choices?.[0]?.finish_reason;
     const scored = E.scoreCreativeResponse(record.response, record.measurement);
     return finish === 'content_filter' ? { ...scored, outcome: 'refusal' } : scored;
+  }
+  if (record.suite === 'reader') {
+    const read = E.readMeasure(record.response, record.input);
+    if (read.outcome !== 'ok') return { outcome: read.outcome, correct: record.gold === 'reject' && read.outcome === 'none' };
+    if (record.gold === 'reject') return { outcome: 'ok', correct: false };
+    const measure = read.measure;
+    if (measure.kind !== 'physical') return { outcome: 'ok', correct: false, read: `${measure.quantity} ${measure.unit}` };
+    const correct = record.gold.some(([quantity, unitName]) => {
+      try {
+        const truth = E.unit(quantity, unitName); const guess = E.unit(measure.quantity, measure.unit);
+        if (!truth.equalBase(guess)) return false;
+        const error = Math.abs(Math.log10(guess.toSI().value / truth.toSI().value));
+        return error <= Math.max(record.toleranceDecades ?? 0, 0.01);
+      } catch { return false; }
+    });
+    return { outcome: 'ok', correct, read: `${measure.quantity} ${measure.unit}` };
   }
   if (record.suite === 'estimate') {
     const value = E.responseContent(record.response).value;
@@ -281,9 +308,9 @@ async function writeManifest(run, options, E, jobs) {
   const manifest = existsSync(manifestPath) ? await readJson(manifestPath) : { schema: recordSchema, run, createdAt: new Date().toISOString(), invocations: [] };
   let gitSha; let dirty;
   try { gitSha = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(); dirty = execFileSync('git', ['status', '--porcelain', '--', 'src', 'scripts', 'evals/sets'], { encoding: 'utf8' }).trim().length > 0; } catch { /* not a checkout */ }
-  const setFiles = ['evals/sets/creative-inputs.json', 'evals/sets/refusal.json', 'evals/sets/estimate-entities.json', 'evals/sets/jev-band-checks.json'];
+  const setFiles = ['evals/sets/creative-inputs.json', 'evals/sets/refusal.json', 'evals/sets/interpretation.json', 'evals/sets/estimate-entities.json', 'evals/sets/jev-band-checks.json'];
   manifest.invocations.push({ at: new Date().toISOString(), command: options.command, suite: options.suite, models: [...new Set(jobs.map(job => job.model))], jobs: jobs.length, gateway: options.gateway ?? 'anything-but-metric-research', gitSha, dirty,
-    promptVersions: { creative: E.creativePromptVersion, jev: E.jevQuestionVersion, creativePromptSha256: sha(E.creativeProposalPrompt), estimatePromptSha256: sha(E.estimatePrompt), judgePromptSha256: sha(judgePrompt) },
+    promptVersions: { creative: E.creativePromptVersion, reader: E.readerPromptVersion, jev: E.jevQuestionVersion, creativePromptSha256: sha(E.creativeProposalPrompt), readerPromptSha256: sha(E.readerPrompt), estimatePromptSha256: sha(E.estimatePrompt), judgePromptSha256: sha(judgePrompt) },
     setSha256: Object.fromEntries(await Promise.all(setFiles.map(async file => [file, sha(await readFile(file, 'utf8'))]))), prices: Object.fromEntries([...new Set(jobs.map(job => job.model))].map(model => [model, { input: models[model].input, output: models[model].output }])),
     budget: { maxUsd: Number(options['max-usd'] ?? 0.25), dailyUsd: Number(options['daily-usd'] ?? 0.9), monthlyUsd: Number(options['monthly-usd'] ?? 4.5) } });
   await writeFile(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
@@ -309,7 +336,7 @@ async function execute(E, jobs, options) {
   const inFlight = new Set();
   const sendOne = async (job, startedAt, projected) => {
     const base = { schema: recordSchema, run, seq: ++seq, at: new Date(startedAt).toISOString(), suite: job.suite, caseId: job.caseId, condition: job.condition, model: job.model, transport: { kind: models[job.model].transport ?? 'workers-ai', gateway: transport.gateway },
-      ...(job.measurement ? { measurement: job.measurement } : {}), ...(job.gold ? { gold: job.gold } : {}), ...(job.bands ? { bands: job.bands } : {}), ...(job.targets ? { targets: job.targets } : {}) };
+      ...(job.measurement ? { measurement: job.measurement } : {}), ...(job.input ? { input: job.input, toleranceDecades: job.toleranceDecades } : {}), ...(job.gold ? { gold: job.gold } : {}), ...(job.bands ? { bands: job.bands } : {}), ...(job.targets ? { targets: job.targets } : {}) };
     let record;
     try {
       const sent = await transport.send(job);
@@ -404,6 +431,9 @@ export function summarise(records) {
       for (const check of checks) for (const reason of check.reasons) reasons[reason] = (reasons[reason] ?? 0) + 1;
       Object.assign(row, { answerRate: round((outcomes.ok ?? 0) / group.length, 3), refusalRate: round(((outcomes.refusal ?? 0) + group.filter(record => record.scored.outcome !== 'refusal' && record.error?.kind === 'refusal').length) / group.length, 3), proposals: checks.length, validProposals: checks.filter(check => check.ok).length, rejectReasons: reasons });
     }
+    if (suite === 'reader') {
+      Object.assign(row, { answerRate: round((outcomes.ok ?? 0) / group.length, 3), refusalRate: round((outcomes.refusal ?? 0) / group.length, 3), accuracy: round(group.filter(record => record.scored.correct).length / group.length, 3) });
+    }
     if (suite === 'estimate') {
       const items = group.flatMap(record => record.scored.items ?? []);
       const errors = items.filter(item => typeof item.error === 'number').map(item => item.error);
@@ -462,7 +492,7 @@ async function main() {
       const model = options.model ?? record.model;
       const request = Object.fromEntries(Object.entries(record.request).filter(([key]) => key !== 'max_tokens' && !(key in (models[record.model]?.extra ?? {}))));
       const prior = records.filter(entry => entry.model === model && entry.condition.startsWith(`resend-of-${record.seq}#`)).length;
-      await execute(E, [{ suite: record.suite, caseId: record.caseId, condition: `resend-of-${record.seq}#${prior + 1}`, model, request, ...(record.measurement ? { measurement: record.measurement } : {}), ...(record.gold ? { gold: record.gold } : {}), ...(record.bands ? { bands: record.bands } : {}), ...(record.targets ? { targets: record.targets } : {}) }], options);
+      await execute(E, [{ suite: record.suite, caseId: record.caseId, condition: `resend-of-${record.seq}#${prior + 1}`, model, request, ...(record.measurement ? { measurement: record.measurement } : {}), ...(record.input ? { input: record.input, toleranceDecades: record.toleranceDecades } : {}), ...(record.gold ? { gold: record.gold } : {}), ...(record.bands ? { bands: record.bands } : {}), ...(record.targets ? { targets: record.targets } : {}) }], options);
       break;
     }
     case 'replay': {
