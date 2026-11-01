@@ -18,13 +18,13 @@
     "secrets:sync": "node scripts/configure-secrets.mjs"
   },
   "devDependencies": {
-    "@astrojs/check": "^0.9.4",
-    "@cloudflare/vitest-pool-workers": "^0.22.0",
-    "@cloudflare/workers-types": "^5.20261001.1",
-    "astro": "^7.3.5",
+    "@astrojs/check": "^0.9.12",
+    "@cloudflare/vitest-pool-workers": "^0.23.0",
+    "@cloudflare/workers-types": "^5.20261029.1",
+    "astro": "^7.4.4",
     "typescript": "^5.9.3",
     "vitest": "^4.1.0",
-    "wrangler": "^4.145.0"
+    "wrangler": "^4.155.0"
   },
   "dependencies": {
     "mathjs": "^15.2.0"
